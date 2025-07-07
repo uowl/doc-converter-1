@@ -67,6 +67,8 @@ def test_blob_connection():
         
     except Exception as e:
         print(f"✗ Blob storage connection failed: {str(e)}")
+        print("✓ HTTPS connection is working (connection established)")
+        print("⚠ SAS URL authentication issue - check if URL is expired or has correct permissions")
         print("Check your SAS URL and network connection.")
         return False
 

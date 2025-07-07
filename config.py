@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Azure Blob Storage Configuration
-SAS_URL = "https://sasstoragejp.blob.core.windows.net/mysasstorage?sp=racwdli&st=2025-07-02T02:19:03Z&se=2025-07-31T10:19:03Z&sip=108.49.61.242&spr=https&sv=2024-11-04&sr=c&sig=uQcGrWY7TJqZsCWZYJH8XTvyYAW08FkqEa6OftzkRy4%3D"
+SAS_URL = "https://sasstoragejp.blob.core.windows.net/mysasstorage?sp=racwdl&st=2025-07-07T04:28:44Z&se=2025-07-31T12:28:44Z&sip=108.49.61.242&sv=2024-11-04&sr=c&sig=O1xmqnb8n5d%2BWRG29VFvyNDGbptS94uFa337MS5M1nc%3D"
 
 # Trigger file pattern
 TRIGGER_FILE_PATTERN = "start_converson_1234.txt"

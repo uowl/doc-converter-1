@@ -3,6 +3,7 @@ import os
 from urllib.parse import urlparse, parse_qs
 from azure.storage.blob import BlobServiceClient
 from config import SAS_URL, TRIGGER_FILE_PATTERN, OUTPUT_DIR
+from sas_url_handler import SASUrlHandler
 
 class BlobMonitor:
     def __init__(self):
@@ -11,16 +12,21 @@ class BlobMonitor:
         self.output_dir = OUTPUT_DIR
         self.processed_files = set()
         
-        # Parse SAS URL to get container and account info
-        parsed_url = urlparse(self.sas_url)
-        self.account_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-        self.container_name = parsed_url.path.strip('/')
+        # Use the SAS URL handler for proper authentication
+        self.sas_handler = SASUrlHandler(self.sas_url)
         
-        # Create blob service client
-        self.blob_service_client = BlobServiceClient(
-            account_url=self.account_url,
-            credential=self.sas_url
-        )
+        # Validate SAS URL
+        is_valid, message = self.sas_handler.validate_sas_url()
+        if not is_valid:
+            raise Exception(f"SAS URL validation failed: {message}")
+        
+        # Get account info
+        account_info = self.sas_handler.get_account_info()
+        self.account_url = account_info['account_url']
+        self.container_name = account_info['container_name']
+        
+        # Create blob service client using the handler
+        self.blob_service_client = self.sas_handler.get_blob_service_client()
         
         # Create output directory if it doesn't exist
         os.makedirs(self.output_dir, exist_ok=True)
@@ -39,6 +45,7 @@ class BlobMonitor:
     def check_for_trigger_file(self):
         """Check if the trigger file exists in the blob storage."""
         try:
+            self.logger.info(f"Connecting to blob storage via HTTPS: {self.account_url}")
             container_client = self.blob_service_client.get_container_client(self.container_name)
             
             # List blobs in the container
@@ -53,6 +60,8 @@ class BlobMonitor:
             
         except Exception as e:
             self.logger.error(f"Error checking for trigger file: {str(e)}")
+            self.logger.error(f"Account URL: {self.account_url}")
+            self.logger.error(f"Container: {self.container_name}")
             return False
     
     def get_documents_to_convert(self):
