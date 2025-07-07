@@ -31,7 +31,7 @@ class BlobMonitor:
         # Create output directory if it doesn't exist
         os.makedirs(self.output_dir, exist_ok=True)
         
-        # Setup logging
+        # Setup logging with reduced Azure SDK verbosity
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',
@@ -40,6 +40,15 @@ class BlobMonitor:
                 logging.StreamHandler()
             ]
         )
+        
+        # Reduce Azure SDK logging verbosity based on configuration
+        from config import VERBOSE_AZURE_LOGS
+        if not VERBOSE_AZURE_LOGS:
+            logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
+            logging.getLogger('azure.storage.blob').setLevel(logging.WARNING)
+            logging.getLogger('azure.core.pipeline').setLevel(logging.WARNING)
+            logging.getLogger('azure.core.pipeline.transport').setLevel(logging.WARNING)
+        
         self.logger = logging.getLogger(__name__)
     
     def check_for_trigger_file(self):

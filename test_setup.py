@@ -27,9 +27,9 @@ def test_dependencies():
     for package in required_packages:
         try:
             __import__(package.replace('-', '_'))
-            print(f"✓ {package}")
+            print(f"[OK] {package}")
         except ImportError:
-            print(f"✗ {package} - MISSING")
+            print(f"[ERROR] {package} - MISSING")
             missing_packages.append(package)
     
     if missing_packages:
@@ -37,12 +37,18 @@ def test_dependencies():
         print("Install them using: pip install -r requirements.txt")
         return False
     
-    print("✓ All dependencies are installed!")
+    print("[OK] All dependencies are installed!")
     return True
 
 def test_blob_connection():
     """Test blob storage connection."""
     print("\nTesting blob storage connection...")
+    
+    # Reduce Azure SDK logging for cleaner test output
+    import logging
+    logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
+    logging.getLogger('azure.storage.blob').setLevel(logging.WARNING)
+    logging.getLogger('azure.core.pipeline').setLevel(logging.WARNING)
     
     try:
         from blob_monitor import BlobMonitor
@@ -53,22 +59,22 @@ def test_blob_connection():
         
         # Try to list blobs (this will test the connection)
         blobs = list(container_client.list_blobs())
-        print(f"✓ Connected to blob storage successfully!")
-        print(f"✓ Found {len(blobs)} blobs in container")
+        print(f"[OK] Connected to blob storage successfully!")
+        print(f"[OK] Found {len(blobs)} blobs in container")
         
         # Check for trigger file
         trigger_found = monitor.check_for_trigger_file()
         if trigger_found:
-            print(f"✓ Trigger file '{TRIGGER_FILE_PATTERN}' found!")
+            print(f"[OK] Trigger file '{TRIGGER_FILE_PATTERN}' found!")
         else:
-            print(f"ℹ Trigger file '{TRIGGER_FILE_PATTERN}' not found (this is normal)")
+            print(f"[INFO] Trigger file '{TRIGGER_FILE_PATTERN}' not found (this is normal)")
         
         return True
         
     except Exception as e:
-        print(f"✗ Blob storage connection failed: {str(e)}")
-        print("✓ HTTPS connection is working (connection established)")
-        print("⚠ SAS URL authentication issue - check if URL is expired or has correct permissions")
+        print(f"[ERROR] Blob storage connection failed: {str(e)}")
+        print("[OK] HTTPS connection is working (connection established)")
+        print("[WARNING] SAS URL authentication issue - check if URL is expired or has correct permissions")
         print("Check your SAS URL and network connection.")
         return False
 
@@ -79,20 +85,20 @@ def test_document_converter():
     try:
         from document_converter import DocumentConverter
         converter = DocumentConverter()
-        print("✓ Document converter initialized successfully!")
+        print("[OK] Document converter initialized successfully!")
         
         # Test if Aspose is working
         try:
             import aspose.words as aw
-            print("✓ Aspose.Words is available!")
+            print("[OK] Aspose.Words is available!")
         except Exception as e:
-            print(f"✗ Aspose.Words error: {str(e)}")
+            print(f"[ERROR] Aspose.Words error: {str(e)}")
             return False
         
         return True
         
     except Exception as e:
-        print(f"✗ Document converter test failed: {str(e)}")
+        print(f"[ERROR] Document converter test failed: {str(e)}")
         return False
 
 def test_configuration():
@@ -105,22 +111,22 @@ def test_configuration():
         parsed_url = urlparse(SAS_URL)
         
         if parsed_url.scheme and parsed_url.netloc:
-            print("✓ SAS URL format is valid")
+            print("[OK] SAS URL format is valid")
         else:
-            print("✗ SAS URL format is invalid")
+            print("[ERROR] SAS URL format is invalid")
             return False
         
         # Test other config values
         if TRIGGER_FILE_PATTERN:
-            print(f"✓ Trigger file pattern: {TRIGGER_FILE_PATTERN}")
+            print(f"[OK] Trigger file pattern: {TRIGGER_FILE_PATTERN}")
         else:
-            print("✗ Trigger file pattern is empty")
+            print("[ERROR] Trigger file pattern is empty")
             return False
         
         return True
         
     except Exception as e:
-        print(f"✗ Configuration test failed: {str(e)}")
+        print(f"[ERROR] Configuration test failed: {str(e)}")
         return False
 
 def main():
@@ -143,17 +149,17 @@ def main():
             if test_func():
                 passed += 1
         except Exception as e:
-            print(f"✗ {test_name} test failed with exception: {str(e)}")
+            print(f"[ERROR] {test_name} test failed with exception: {str(e)}")
     
     print("\n" + "=" * 40)
     print(f"Test Results: {passed}/{total} tests passed")
     
     if passed == total:
-        print("✓ All tests passed! Your setup is ready.")
+        print("[OK] All tests passed! Your setup is ready.")
         print("\nTo start the application, run:")
         print("python main.py")
     else:
-        print("✗ Some tests failed. Please fix the issues above.")
+        print("[ERROR] Some tests failed. Please fix the issues above.")
         print("\nCommon solutions:")
         print("1. Install missing dependencies: pip install -r requirements.txt")
         print("2. Check your SAS URL in config.py")

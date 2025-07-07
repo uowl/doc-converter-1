@@ -28,4 +28,6 @@ OUTPUT_DIR = "converted_documents"
 
 # Logging configuration
 LOG_LEVEL = "INFO"
-LOG_FILE = "doc_converter.log" 
+LOG_FILE = "doc_converter.log"
+# Set to True to show detailed Azure SDK logs, False for clean console output
+VERBOSE_AZURE_LOGS = False 

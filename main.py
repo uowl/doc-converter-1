@@ -13,7 +13,7 @@ class DocumentConverterApp:
         self.failed_tracker = FailedConversionsTracker()
         self.logger = logging.getLogger(__name__)
         
-        # Setup logging
+        # Setup logging with reduced Azure SDK verbosity
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',
@@ -22,6 +22,14 @@ class DocumentConverterApp:
                 logging.StreamHandler()
             ]
         )
+        
+        # Reduce Azure SDK logging verbosity based on configuration
+        from config import VERBOSE_AZURE_LOGS
+        if not VERBOSE_AZURE_LOGS:
+            logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
+            logging.getLogger('azure.storage.blob').setLevel(logging.WARNING)
+            logging.getLogger('azure.core.pipeline').setLevel(logging.WARNING)
+            logging.getLogger('azure.core.pipeline.transport').setLevel(logging.WARNING)
     
     def process_documents(self):
         """Process all documents when trigger file is found."""
@@ -71,7 +79,7 @@ class DocumentConverterApp:
                 self.logger.info("Check failed_conversions.csv for details")
                 self.logger.info("=========================================")
             else:
-                self.logger.info("✓ No failed conversions recorded")
+                self.logger.info("[OK] No failed conversions recorded")
                 
         except Exception as e:
             self.logger.error(f"Error displaying failure summary: {str(e)}")
