@@ -4,10 +4,12 @@ A Python application that monitors Azure Blob Storage for a trigger file and con
 
 ## Features
 
-- **Blob Storage Monitoring**: Continuously monitors Azure Blob Storage for a specific trigger file
+- **Azure Blob Storage Monitoring**: Continuously monitors Azure Blob Storage for a specific trigger file in a `config` folder
 - **Document Conversion**: Converts various document formats to PDF using Aspose libraries
-- **Supported Formats**: DOC, DOCX, TXT, RTF, ODT, HTML, HTM
-- **Automatic Processing**: Downloads documents, converts them, and uploads the PDFs back to blob storage
+- **Supported Formats**: DOC, DOCX, TXT, RTF, ODT, HTML, HTM, JPG, PNG, PDF
+- **PDF Handling**: PDF files are copied as-is without conversion
+- **Image Conversion**: JPG and PNG images are converted to PDF format
+- **Automatic Processing**: Downloads documents from `files` folder, converts them, and uploads the PDFs back to blob storage
 - **Logging**: Comprehensive logging for monitoring and debugging
 
 ## Prerequisites
@@ -32,6 +34,24 @@ A Python application that monitors Azure Blob Storage for a trigger file and con
    - The SAS URL is already configured in `config.py`
    - Modify settings in `config.py` if needed
 
+## Azure Blob Storage Structure
+
+The application expects the following folder structure in your Azure blob container:
+
+```
+your-blob-container/
+├── config/                    # Folder for trigger files
+│   └── start_converson_1234.txt  # Trigger file (any .txt file)
+├── files/                     # Folder for documents to convert
+│   ├── document1.docx
+│   ├── document2.txt
+│   └── document3.html
+└── converted/                 # Output folder for converted PDFs (created automatically)
+    ├── document1.pdf
+    ├── document2.pdf
+    └── document3.pdf
+```
+
 ## Configuration
 
 Edit `config.py` to customize the application:
@@ -40,7 +60,11 @@ Edit `config.py` to customize the application:
 # Azure Blob Storage Configuration
 SAS_URL = "your-sas-url-here"
 
-# Trigger file pattern
+# Azure blob storage folder structure
+AZURE_CONFIG_FOLDER = "config"  # Folder for trigger files
+AZURE_FILES_FOLDER = "files"    # Folder for documents to convert
+
+# Trigger file pattern (monitored in Azure config folder)
 TRIGGER_FILE_PATTERN = "start_converson_1234.txt"
 
 # Polling interval in seconds (2 minutes)
@@ -54,7 +78,11 @@ SUPPORTED_EXTENSIONS = {
     '.rtf': 'word',
     '.odt': 'word',
     '.html': 'html',
-    '.htm': 'html'
+    '.htm': 'html',
+    '.jpg': 'image',
+    '.jpeg': 'image',
+    '.png': 'image',
+    '.pdf': 'pdf'  # PDF files will be copied as-is
 }
 ```
 
@@ -67,12 +95,12 @@ SUPPORTED_EXTENSIONS = {
    python main.py
    ```
 
-2. **Upload documents to blob storage:**
-   - Upload documents you want to convert to your blob container
-   - Supported formats: DOC, DOCX, TXT, RTF, ODT, HTML, HTM
+2. **Upload documents to Azure blob storage:**
+   - Upload documents you want to convert to the `files/` folder in your blob container
+   - Supported formats: DOC, DOCX, TXT, RTF, ODT, HTML, HTM, JPG, PNG, PDF
 
 3. **Trigger conversion:**
-   - Upload a file named `start_converson_1234.txt` to the blob container
+   - Upload a file named `start_converson_1234.txt` to the `config/` folder in your blob container
    - The application will detect this trigger file and start processing
 
 4. **Monitor the process:**
@@ -81,9 +109,9 @@ SUPPORTED_EXTENSIONS = {
 
 ### How It Works
 
-1. **Monitoring**: The application polls the blob storage every 2 minutes (configurable)
-2. **Trigger Detection**: When `start_converson_1234.txt` is found, processing begins
-3. **Document Discovery**: All supported documents in the container are identified
+1. **Monitoring**: The application polls the Azure blob storage every 2 minutes (configurable)
+2. **Trigger Detection**: When `config/start_converson_1234.txt` is found, processing begins
+3. **Document Discovery**: All supported documents in the `files/` folder are identified
 4. **Download**: Documents are downloaded to a temporary local directory
 5. **Conversion**: Each document is converted to PDF using Aspose libraries
 6. **Upload**: Converted PDFs are uploaded to the `converted/` folder in blob storage
@@ -109,13 +137,16 @@ doc-converter/
 
 ## Supported Document Formats
 
-| Format | Extension | Conversion Method |
+| Format | Extension | Processing Method |
 |--------|-----------|-------------------|
-| Microsoft Word | .doc, .docx | Aspose.Words |
-| Rich Text Format | .rtf | Aspose.Words |
-| OpenDocument Text | .odt | Aspose.Words |
-| Plain Text | .txt | Aspose.Words |
-| HTML | .html, .htm | Aspose.Words |
+| Microsoft Word | .doc, .docx | Convert to PDF |
+| Rich Text Format | .rtf | Convert to PDF |
+| OpenDocument Text | .odt | Convert to PDF |
+| Plain Text | .txt | Convert to PDF |
+| HTML | .html, .htm | Convert to PDF |
+| JPEG Images | .jpg, .jpeg | Convert to PDF |
+| PNG Images | .png | Convert to PDF |
+| PDF Documents | .pdf | Copy as-is |
 
 ## Logging
 
@@ -175,6 +206,7 @@ python view_failures.py clear --days 30
 2. **Network Connectivity**: Check internet connection and firewall settings
 3. **Aspose License**: Ensure you have a valid Aspose license for production use
 4. **File Permissions**: Ensure the application has write permissions for temp and output directories
+5. **Azure Folder Structure**: Ensure your blob container has the correct folder structure (`config/` and `files/` folders)
 
 ### Debug Mode
 

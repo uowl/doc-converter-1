@@ -1,10 +1,11 @@
 import time
 import os
 import logging
+from datetime import datetime, timedelta
 from blob_monitor import BlobMonitor
 from document_converter import DocumentConverter
 from failed_conversions import FailedConversionsTracker
-from config import POLLING_INTERVAL, TRIGGER_FILE_PATTERN
+from config import POLLING_INTERVAL, TRIGGER_FILE_PATTERN, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER
 
 class DocumentConverterApp:
     def __init__(self):
@@ -31,6 +32,11 @@ class DocumentConverterApp:
             logging.getLogger('azure.core.pipeline').setLevel(logging.WARNING)
             logging.getLogger('azure.core.pipeline.transport').setLevel(logging.WARNING)
     
+    def _print_next_polling_time(self):
+        """Print the time when the next polling will occur."""
+        next_polling_time = datetime.now() + timedelta(seconds=POLLING_INTERVAL)
+        self.logger.info(f"Next polling will occur at: {next_polling_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    
     def process_documents(self):
         """Process all documents when trigger file is found."""
         try:
@@ -40,10 +46,10 @@ class DocumentConverterApp:
             documents = self.blob_monitor.get_documents_to_convert()
             
             if not documents:
-                self.logger.info("No documents found to convert.")
+                self.logger.info("No documents found to convert in Azure files folder.")
                 return
             
-            self.logger.info(f"Found {len(documents)} documents to convert.")
+            self.logger.info(f"Found {len(documents)} documents to convert from Azure files folder.")
             
             # Process each document
             for document_name in documents:
@@ -56,6 +62,9 @@ class DocumentConverterApp:
             self._display_failure_summary()
             
             self.logger.info("Document processing completed.")
+            
+            # Print next polling time after processing is completed
+            self._print_next_polling_time()
             
         except Exception as e:
             self.logger.error(f"Error in document processing: {str(e)}")
@@ -87,10 +96,13 @@ class DocumentConverterApp:
     def _process_single_document(self, document_name):
         """Process a single document."""
         try:
-            self.logger.info(f"Processing document: {document_name}")
+            # Extract just the filename for display
+            filename = os.path.basename(document_name)
+            file_ext = os.path.splitext(filename)[1].lower()
+            self.logger.info(f"Processing document: {filename} (from {document_name})")
             
             # Create temporary file path
-            temp_file_path = os.path.join("temp", document_name)
+            temp_file_path = os.path.join("temp", filename)
             os.makedirs("temp", exist_ok=True)
             
             # Get file size for tracking
@@ -103,65 +115,91 @@ class DocumentConverterApp:
             
             # Download the document
             if not self.blob_monitor.download_blob(document_name, temp_file_path):
-                error_msg = f"Failed to download {document_name}"
+                error_msg = f"Failed to download {filename}"
                 self.logger.error(error_msg)
                 self.failed_tracker.add_failed_conversion(
-                    filename=document_name,
+                    filename=filename,
                     error_type="DOWNLOAD_FAILED",
                     error_message=error_msg,
                     file_size_bytes=file_size
                 )
                 return
             
-            # Convert the document
-            converted_file_path = self.document_converter.convert_to_pdf(temp_file_path)
+            # Process the document based on file type
+            if file_ext == '.pdf':
+                # For PDF files, copy as-is
+                converted_file_path = self.document_converter.convert_to_pdf(temp_file_path)
+                if converted_file_path:
+                    self.logger.info(f"Successfully copied PDF file: {filename}")
+                else:
+                    error_msg = f"Failed to copy PDF file {filename}"
+                    self.logger.error(error_msg)
+                    self.failed_tracker.add_failed_conversion(
+                        filename=filename,
+                        error_type="COPY_FAILED",
+                        error_message=error_msg,
+                        file_size_bytes=file_size
+                    )
+                    return
+            else:
+                # For other files, convert to PDF
+                converted_file_path = self.document_converter.convert_to_pdf(temp_file_path)
+                if not converted_file_path:
+                    error_msg = f"Failed to convert {filename}"
+                    self.logger.error(error_msg)
+                    self.failed_tracker.add_failed_conversion(
+                        filename=filename,
+                        error_type="CONVERSION_FAILED",
+                        error_message=error_msg,
+                        file_size_bytes=file_size
+                    )
+                    return
             
+            # Upload the processed file (PDF or converted PDF)
             if converted_file_path:
-                # Upload the converted PDF
-                pdf_blob_name = f"converted/{os.path.basename(converted_file_path)}"
+                # Upload the processed file to the converted folder
+                pdf_filename = os.path.basename(converted_file_path)
+                pdf_blob_name = f"converted/{pdf_filename}"
                 if self.blob_monitor.upload_blob(converted_file_path, pdf_blob_name):
-                    self.logger.info(f"Successfully converted and uploaded: {document_name}")
+                    if file_ext == '.pdf':
+                        self.logger.info(f"Successfully copied and uploaded PDF: {filename}")
+                    else:
+                        self.logger.info(f"Successfully converted and uploaded: {filename}")
                     # Mark as processed
                     self.blob_monitor.processed_files.add(document_name)
                 else:
-                    error_msg = f"Failed to upload converted PDF for {document_name}"
+                    error_msg = f"Failed to upload processed file for {filename}"
                     self.logger.error(error_msg)
                     self.failed_tracker.add_failed_conversion(
-                        filename=document_name,
+                        filename=filename,
                         error_type="UPLOAD_FAILED",
                         error_message=error_msg,
                         file_size_bytes=file_size
                     )
-            else:
-                error_msg = f"Failed to convert {document_name}"
-                self.logger.error(error_msg)
-                self.failed_tracker.add_failed_conversion(
-                    filename=document_name,
-                    error_type="CONVERSION_FAILED",
-                    error_message=error_msg,
-                    file_size_bytes=file_size
-                )
             
-            # Clean up temporary files immediately after successful conversion
+            # Clean up temporary files immediately after successful processing
             if converted_file_path:
                 # Delete the downloaded original file to conserve space
                 self.document_converter.cleanup_temp_files(temp_file_path)
-                self.logger.info(f"Deleted downloaded file to conserve space: {document_name}")
+                if file_ext == '.pdf':
+                    self.logger.info(f"Deleted downloaded PDF file to conserve space: {filename}")
+                else:
+                    self.logger.info(f"Deleted downloaded file to conserve space: {filename}")
                 
-                # Also clean up the converted PDF from local storage after upload
+                # Also clean up the processed file from local storage after upload
                 if os.path.exists(converted_file_path):
                     self.document_converter.cleanup_temp_files(converted_file_path)
-                    self.logger.info(f"Cleaned up local PDF file: {os.path.basename(converted_file_path)}")
+                    self.logger.info(f"Cleaned up local processed file: {os.path.basename(converted_file_path)}")
             else:
-                # If conversion failed, still clean up the downloaded file
+                # If processing failed, still clean up the downloaded file
                 self.document_converter.cleanup_temp_files(temp_file_path)
-                self.logger.info(f"Cleaned up downloaded file after failed conversion: {document_name}")
+                self.logger.info(f"Cleaned up downloaded file after failed processing: {filename}")
                 
         except Exception as e:
-            error_msg = f"Error processing document {document_name}: {str(e)}"
+            error_msg = f"Error processing document {filename}: {str(e)}"
             self.logger.error(error_msg)
             self.failed_tracker.add_failed_conversion(
-                filename=document_name,
+                filename=filename,
                 error_type="PROCESSING_ERROR",
                 error_message=error_msg,
                 file_size_bytes=0
@@ -170,7 +208,8 @@ class DocumentConverterApp:
     def run(self):
         """Main application loop."""
         self.logger.info("Starting Document Converter Application")
-        self.logger.info(f"Monitoring for trigger file: {TRIGGER_FILE_PATTERN}")
+        self.logger.info(f"Monitoring Azure config folder for trigger file: {AZURE_CONFIG_FOLDER}/{TRIGGER_FILE_PATTERN}")
+        self.logger.info(f"Processing files from Azure files folder: {AZURE_FILES_FOLDER}/")
         self.logger.info(f"Polling interval: {POLLING_INTERVAL} seconds")
         
         try:
@@ -181,6 +220,8 @@ class DocumentConverterApp:
                     self.process_documents()
                 else:
                     self.logger.debug("No trigger file found, continuing to monitor...")
+                    # Print next polling time during regular polling cycle
+                    self._print_next_polling_time()
                 
                 # Wait before next check
                 time.sleep(POLLING_INTERVAL)

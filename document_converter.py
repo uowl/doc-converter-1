@@ -1,5 +1,6 @@
 import os
 import logging
+import shutil
 from config import SUPPORTED_EXTENSIONS, OUTPUT_DIR
 
 class DocumentConverter:
@@ -11,7 +12,7 @@ class DocumentConverter:
         os.makedirs(self.output_dir, exist_ok=True)
     
     def convert_to_pdf(self, input_path, output_filename=None):
-        """Convert a document to PDF using Aspose libraries."""
+        """Convert a document to PDF using Aspose libraries or copy as-is for PDFs."""
         try:
             file_ext = os.path.splitext(input_path)[1].lower()
             
@@ -21,7 +22,14 @@ class DocumentConverter:
             
             output_path = os.path.join(self.output_dir, output_filename)
             
-            if file_ext in ['.doc', '.docx', '.rtf', '.odt']:
+            # Handle PDF files - copy as-is
+            if file_ext == '.pdf':
+                return self._copy_pdf_file(input_path, output_path)
+            # Handle image files - convert to PDF
+            elif file_ext in ['.jpg', '.jpeg', '.png']:
+                return self._convert_image_to_pdf(input_path, output_path)
+            # Handle document files - convert to PDF
+            elif file_ext in ['.doc', '.docx', '.rtf', '.odt']:
                 return self._convert_word_document(input_path, output_path)
             elif file_ext in ['.html', '.htm']:
                 return self._convert_html_document(input_path, output_path)
@@ -33,6 +41,39 @@ class DocumentConverter:
                 
         except Exception as e:
             self.logger.error(f"Error converting {input_path}: {str(e)}")
+            return None
+    
+    def _copy_pdf_file(self, input_path, output_path):
+        """Copy PDF file as-is without conversion."""
+        try:
+            shutil.copy2(input_path, output_path)
+            self.logger.info(f"Copied PDF file as-is: {input_path} -> {output_path}")
+            return output_path
+            
+        except Exception as e:
+            self.logger.error(f"Error copying PDF file {input_path}: {str(e)}")
+            return None
+    
+    def _convert_image_to_pdf(self, input_path, output_path):
+        """Convert image files (JPG, PNG) to PDF."""
+        try:
+            import aspose.words as aw
+            
+            # Create a new document
+            doc = aw.Document()
+            builder = aw.DocumentBuilder(doc)
+            
+            # Insert the image into the document
+            builder.insert_image(input_path)
+            
+            # Save as PDF
+            doc.save(output_path, aw.SaveFormat.PDF)
+            
+            self.logger.info(f"Converted image to PDF: {input_path} -> {output_path}")
+            return output_path
+            
+        except Exception as e:
+            self.logger.error(f"Error converting image {input_path}: {str(e)}")
             return None
     
     def _convert_word_document(self, input_path, output_path):

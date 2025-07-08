@@ -6,7 +6,11 @@ load_dotenv()
 # Azure Blob Storage Configuration
 SAS_URL = "https://sasstoragejp.blob.core.windows.net/mysasstorage?sp=racwdl&st=2025-07-07T04:28:44Z&se=2025-07-31T12:28:44Z&sip=108.49.61.242&sv=2024-11-04&sr=c&sig=O1xmqnb8n5d%2BWRG29VFvyNDGbptS94uFa337MS5M1nc%3D"
 
-# Trigger file pattern
+# Azure blob storage folder structure
+AZURE_CONFIG_FOLDER = "config"  # Folder in Azure blob storage for trigger files
+AZURE_FILES_FOLDER = "files"    # Folder in Azure blob storage for documents to convert
+
+# Trigger file pattern (monitored in Azure config folder)
 TRIGGER_FILE_PATTERN = "start_converson_1234.txt"
 
 # Polling interval in seconds (2 minutes)
@@ -20,7 +24,11 @@ SUPPORTED_EXTENSIONS = {
     '.rtf': 'word',
     '.odt': 'word',
     '.html': 'html',
-    '.htm': 'html'
+    '.htm': 'html',
+    '.jpg': 'image',
+    '.jpeg': 'image',
+    '.png': 'image',
+    '.pdf': 'pdf'  # PDF files will be copied as-is
 }
 
 # Output directory for converted files
