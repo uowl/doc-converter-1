@@ -28,6 +28,8 @@ SUPPORTED_EXTENSIONS = {
     '.jpg': 'image',
     '.jpeg': 'image',
     '.png': 'image',
+    '.tif': 'tiff',  # TIF files will be copied as-is
+    '.tiff': 'tiff', # TIFF files will be copied as-is
     '.pdf': 'pdf'  # PDF files will be copied as-is
 }
 

@@ -6,8 +6,8 @@ A Python application that monitors Azure Blob Storage for a trigger file and con
 
 - **Azure Blob Storage Monitoring**: Continuously monitors Azure Blob Storage for a specific trigger file in a `config` folder
 - **Document Conversion**: Converts various document formats to PDF using Aspose libraries
-- **Supported Formats**: DOC, DOCX, TXT, RTF, ODT, HTML, HTM, JPG, PNG, PDF
-- **PDF Handling**: PDF files are copied as-is without conversion
+- **Supported Formats**: DOC, DOCX, TXT, RTF, ODT, HTML, HTM, JPG, PNG, TIF, PDF
+- **PDF/TIF Handling**: PDF and TIF files are copied as-is without conversion
 - **Image Conversion**: JPG and PNG images are converted to PDF format
 - **Automatic Processing**: Downloads documents from `files` folder, converts them, and uploads the PDFs back to blob storage
 - **Logging**: Comprehensive logging for monitoring and debugging
@@ -82,6 +82,8 @@ SUPPORTED_EXTENSIONS = {
     '.jpg': 'image',
     '.jpeg': 'image',
     '.png': 'image',
+    '.tif': 'tiff',  # TIF files will be copied as-is
+    '.tiff': 'tiff', # TIFF files will be copied as-is
     '.pdf': 'pdf'  # PDF files will be copied as-is
 }
 ```
@@ -97,7 +99,7 @@ SUPPORTED_EXTENSIONS = {
 
 2. **Upload documents to Azure blob storage:**
    - Upload documents you want to convert to the `files/` folder in your blob container
-   - Supported formats: DOC, DOCX, TXT, RTF, ODT, HTML, HTM, JPG, PNG, PDF
+   - Supported formats: DOC, DOCX, TXT, RTF, ODT, HTML, HTM, JPG, PNG, TIF, PDF
 
 3. **Trigger conversion:**
    - Upload a file named `start_converson_1234.txt` to the `config/` folder in your blob container
@@ -146,6 +148,7 @@ doc-converter/
 | HTML | .html, .htm | Convert to PDF |
 | JPEG Images | .jpg, .jpeg | Convert to PDF |
 | PNG Images | .png | Convert to PDF |
+| TIFF Images | .tif, .tiff | Copy as-is |
 | PDF Documents | .pdf | Copy as-is |
 
 ## Logging

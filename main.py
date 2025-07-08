@@ -126,13 +126,15 @@ class DocumentConverterApp:
                 return
             
             # Process the document based on file type
-            if file_ext == '.pdf':
-                # For PDF files, copy as-is
+            if file_ext in ['.pdf', '.tif', '.tiff']:
+                # For PDF and TIF files, copy as-is
                 converted_file_path = self.document_converter.convert_to_pdf(temp_file_path)
                 if converted_file_path:
-                    self.logger.info(f"Successfully copied PDF file: {filename}")
+                    file_type = "PDF" if file_ext == '.pdf' else "TIF"
+                    self.logger.info(f"Successfully copied {file_type} file: {filename}")
                 else:
-                    error_msg = f"Failed to copy PDF file {filename}"
+                    file_type = "PDF" if file_ext == '.pdf' else "TIF"
+                    error_msg = f"Failed to copy {file_type} file {filename}"
                     self.logger.error(error_msg)
                     self.failed_tracker.add_failed_conversion(
                         filename=filename,
@@ -155,14 +157,20 @@ class DocumentConverterApp:
                     )
                     return
             
-            # Upload the processed file (PDF or converted PDF)
+            # Upload the processed file (PDF, TIF, or converted PDF)
             if converted_file_path:
                 # Upload the processed file to the converted folder
-                pdf_filename = os.path.basename(converted_file_path)
-                pdf_blob_name = f"converted/{pdf_filename}"
-                if self.blob_monitor.upload_blob(converted_file_path, pdf_blob_name):
-                    if file_ext == '.pdf':
-                        self.logger.info(f"Successfully copied and uploaded PDF: {filename}")
+                processed_filename = os.path.basename(converted_file_path)
+                # For TIF files, keep original extension; for others, use PDF extension
+                if file_ext in ['.tif', '.tiff']:
+                    blob_name = f"converted/{processed_filename}"  # Keep original TIF extension
+                else:
+                    blob_name = f"converted/{processed_filename}"  # Use PDF extension for converted files
+                
+                if self.blob_monitor.upload_blob(converted_file_path, blob_name):
+                    if file_ext in ['.pdf', '.tif', '.tiff']:
+                        file_type = "PDF" if file_ext == '.pdf' else "TIF"
+                        self.logger.info(f"Successfully copied and uploaded {file_type}: {filename}")
                     else:
                         self.logger.info(f"Successfully converted and uploaded: {filename}")
                     # Mark as processed
@@ -181,8 +189,9 @@ class DocumentConverterApp:
             if converted_file_path:
                 # Delete the downloaded original file to conserve space
                 self.document_converter.cleanup_temp_files(temp_file_path)
-                if file_ext == '.pdf':
-                    self.logger.info(f"Deleted downloaded PDF file to conserve space: {filename}")
+                if file_ext in ['.pdf', '.tif', '.tiff']:
+                    file_type = "PDF" if file_ext == '.pdf' else "TIF"
+                    self.logger.info(f"Deleted downloaded {file_type} file to conserve space: {filename}")
                 else:
                     self.logger.info(f"Deleted downloaded file to conserve space: {filename}")
                 

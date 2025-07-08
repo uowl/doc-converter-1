@@ -99,7 +99,7 @@ class BlobMonitor:
                 
                 # Check if it's a supported document type
                 file_ext = os.path.splitext(filename)[1].lower()
-                if file_ext in ['.doc', '.docx', '.txt', '.rtf', '.odt', '.html', '.htm', '.jpg', '.jpeg', '.png', '.pdf']:
+                if file_ext in ['.doc', '.docx', '.txt', '.rtf', '.odt', '.html', '.htm', '.jpg', '.jpeg', '.png', '.tif', '.tiff', '.pdf']:
                     documents.append(blob.name)  # Use full blob path for download
             
             self.logger.info(f"Found {len(documents)} documents to convert in Azure files folder")

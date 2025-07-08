@@ -12,19 +12,23 @@ class DocumentConverter:
         os.makedirs(self.output_dir, exist_ok=True)
     
     def convert_to_pdf(self, input_path, output_filename=None):
-        """Convert a document to PDF using Aspose libraries or copy as-is for PDFs."""
+        """Convert a document to PDF using Aspose libraries or copy as-is for PDFs and TIFs."""
         try:
             file_ext = os.path.splitext(input_path)[1].lower()
             
             if output_filename is None:
                 base_name = os.path.splitext(os.path.basename(input_path))[0]
-                output_filename = f"{base_name}.pdf"
+                # Keep original extension for TIF files, use PDF for others
+                if file_ext in ['.tif', '.tiff']:
+                    output_filename = os.path.basename(input_path)  # Keep original filename with extension
+                else:
+                    output_filename = f"{base_name}.pdf"
             
             output_path = os.path.join(self.output_dir, output_filename)
             
-            # Handle PDF files - copy as-is
-            if file_ext == '.pdf':
-                return self._copy_pdf_file(input_path, output_path)
+            # Handle PDF and TIF files - copy as-is
+            if file_ext in ['.pdf', '.tif', '.tiff']:
+                return self._copy_file_as_is(input_path, output_path, file_ext)
             # Handle image files - convert to PDF
             elif file_ext in ['.jpg', '.jpeg', '.png']:
                 return self._convert_image_to_pdf(input_path, output_path)
@@ -43,15 +47,16 @@ class DocumentConverter:
             self.logger.error(f"Error converting {input_path}: {str(e)}")
             return None
     
-    def _copy_pdf_file(self, input_path, output_path):
-        """Copy PDF file as-is without conversion."""
+    def _copy_file_as_is(self, input_path, output_path, file_ext):
+        """Copy PDF and TIF files as-is without conversion."""
         try:
             shutil.copy2(input_path, output_path)
-            self.logger.info(f"Copied PDF file as-is: {input_path} -> {output_path}")
+            file_type = "PDF" if file_ext == '.pdf' else "TIF"
+            self.logger.info(f"Copied {file_type} file as-is: {input_path} -> {output_path}")
             return output_path
             
         except Exception as e:
-            self.logger.error(f"Error copying PDF file {input_path}: {str(e)}")
+            self.logger.error(f"Error copying {file_ext} file {input_path}: {str(e)}")
             return None
     
     def _convert_image_to_pdf(self, input_path, output_path):
