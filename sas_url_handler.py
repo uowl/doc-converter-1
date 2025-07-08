@@ -9,7 +9,17 @@ class SASUrlHandler:
         self.original_sas_url = sas_url
         self.parsed_url = urlparse(sas_url)
         self.account_url = f"{self.parsed_url.scheme}://{self.parsed_url.netloc}"
-        self.container_name = self.parsed_url.path.strip('/')
+        
+        # Parse the path to extract container and additional path
+        path_parts = [part for part in self.parsed_url.path.strip('/').split('/') if part]
+        
+        if len(path_parts) >= 1:
+            self.container_name = path_parts[0]
+            # Store any additional path components after the container name
+            self.additional_path = '/'.join(path_parts[1:]) if len(path_parts) > 1 else ""
+        else:
+            self.container_name = ""
+            self.additional_path = ""
         
         # Parse query parameters
         self.query_params = parse_qs(self.parsed_url.query)
@@ -30,6 +40,8 @@ class SASUrlHandler:
         """Reconstruct the SAS URL with proper encoding."""
         # Get the base URL without query parameters
         base_url = f"{self.account_url}/{self.container_name}"
+        if self.additional_path:
+            base_url += f"/{self.additional_path}"
         
         # Reconstruct query parameters with proper encoding
         query_parts = []
@@ -53,6 +65,9 @@ class SASUrlHandler:
         if missing_required:
             return False, f"Missing required parameters: {missing_required}"
         
+        if not self.container_name:
+            return False, "No container name found in SAS URL path"
+        
         return True, "SAS URL format is valid"
     
     def get_account_info(self):
@@ -60,7 +75,14 @@ class SASUrlHandler:
         return {
             'account_url': self.account_url,
             'container_name': self.container_name,
+            'additional_path': self.additional_path,
             'protocol': self.parsed_url.scheme,
             'host': self.parsed_url.netloc,
             'has_required_params': all(param in self.query_params for param in ['sv', 'sig'])
-        } 
+        }
+    
+    def get_full_path_prefix(self):
+        """Get the full path prefix including container and additional path."""
+        if self.additional_path:
+            return f"{self.container_name}/{self.additional_path}"
+        return self.container_name 

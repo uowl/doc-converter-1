@@ -4,9 +4,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Azure Blob Storage Configuration
-SAS_URL = "https://sasstoragejp.blob.core.windows.net/mysasstorage?sp=racwdl&st=2025-07-07T04:28:44Z&se=2025-07-31T12:28:44Z&sip=108.49.61.242&sv=2024-11-04&sr=c&sig=O1xmqnb8n5d%2BWRG29VFvyNDGbptS94uFa337MS5M1nc%3D"
+# SAS URL can be in multiple formats:
+# 1. Simple format: points directly to container
+#    Example: "https://account.blob.core.windows.net/container?sp=...&sig=..."
+# 2. Complex format: points to a specific folder that contains config/files/converted
+#    Example: "https://account.blob.core.windows.net/container/root/folder1?sp=...&sig=..."
+#    In this case, the system will look for config/, files/, and converted/ folders within root/folder1/
+# 3. URL pointing to a folder named 'config'
+#    Example: "https://account.blob.core.windows.net/container/root/folder1/config?sp=...&sig=..."
+#    In this case, the system will look for config/, files/, and converted/ folders within root/folder1/config/
+
+# JP SAS_URL = "https://sasstoragejp.blob.core.windows.net/mysasstorage?sp=racwdl&st=2025-07-07T04:28:44Z&se=2025-07-31T12:28:44Z&sip=108.49.61.242&sv=2024-11-04&sr=c&sig=O1xmqnb8n5d%2BWRG29VFvyNDGbptS94uFa337MS5M1nc%3D"
+SAS_URL = "https://sasstoragejp.blob.core.windows.net/mysasstorage/jwalin?sp=racwdl&st=2025-07-07T04:28:44Z&se=2025-07-31T12:28:44Z&sip=108.49.61.242&sv=2024-11-04&sr=c&sig=O1xmqnb8n5d%2BWRG29VFvyNDGbptS94uFa337MS5M1nc%3D"
 
 # Azure blob storage folder structure
+# These folders will be created within the container or additional path specified in SAS_URL
 AZURE_CONFIG_FOLDER = "config"  # Folder in Azure blob storage for trigger files
 AZURE_FILES_FOLDER = "files"    # Folder in Azure blob storage for documents to convert
 

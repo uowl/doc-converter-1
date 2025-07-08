@@ -167,6 +167,10 @@ class DocumentConverterApp:
                 else:
                     blob_name = f"converted/{processed_filename}"  # Use PDF extension for converted files
                 
+                # If there's an additional path in the SAS URL, prepend it to the blob name
+                if hasattr(self.blob_monitor, 'additional_path') and self.blob_monitor.additional_path:
+                    blob_name = f"{self.blob_monitor.additional_path}/{blob_name}"
+                
                 if self.blob_monitor.upload_blob(converted_file_path, blob_name):
                     if file_ext in ['.pdf', '.tif', '.tiff']:
                         file_type = "PDF" if file_ext == '.pdf' else "TIF"

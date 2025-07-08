@@ -58,9 +58,16 @@ Edit `config.py` to customize the application:
 
 ```python
 # Azure Blob Storage Configuration
+# SAS URL can be in two formats:
+# 1. Simple format: points directly to container
+#    Example: "https://account.blob.core.windows.net/container?sp=...&sig=..."
+# 2. Complex format: includes additional path after container
+#    Example: "https://account.blob.core.windows.net/container/root/folder1/config?sp=...&sig=..."
+#    In this case, the system will look for config/ and files/ folders within the additional path
 SAS_URL = "your-sas-url-here"
 
 # Azure blob storage folder structure
+# These folders will be created within the container or additional path specified in SAS_URL
 AZURE_CONFIG_FOLDER = "config"  # Folder for trigger files
 AZURE_FILES_FOLDER = "files"    # Folder for documents to convert
 
@@ -119,6 +126,71 @@ SUPPORTED_EXTENSIONS = {
 6. **Upload**: Converted PDFs are uploaded to the `converted/` folder in blob storage
 7. **Cleanup**: Temporary files are removed and the trigger file is deleted
 
+## SAS URL Format Support
+
+The application supports two SAS URL formats:
+
+### 1. Simple Container URL
+```
+https://account.blob.core.windows.net/container?sp=racwdl&st=2025-07-07T04:28:44Z&se=2025-07-31T12:28:44Z&sip=108.49.61.242&sv=2024-11-04&sr=c&sig=...
+```
+
+**Folder Structure:**
+```
+container/
+├── config/                 # Trigger files
+│   └── start_converson_1234.txt
+├── files/                  # Documents to convert
+│   ├── document1.docx
+│   └── document2.pdf
+└── converted/              # Output folder (created automatically)
+    ├── document1.pdf
+    └── document2.pdf
+```
+
+### 2. Complex URL with Additional Path
+```
+https://account.blob.core.windows.net/container/root/folder1?sp=racwdl&st=2025-07-07T04:28:44Z&se=2025-07-31T12:28:44Z&sip=108.49.61.242&sv=2024-11-04&sr=c&sig=...
+```
+
+**Folder Structure:**
+```
+container/
+└── root/
+    └── folder1/           # Additional path from URL
+        ├── config/        # Trigger files
+        │   └── start_converson_1234.txt
+        ├── files/         # Documents to convert
+        │   ├── document1.docx
+        │   └── document2.pdf
+        └── converted/     # Output folder (created automatically)
+            ├── document1.pdf
+            └── document2.pdf
+```
+
+### 3. URL Pointing to Folder Named 'config'
+```
+https://account.blob.core.windows.net/container/root/folder1/config?sp=racwdl&st=2025-07-07T04:28:44Z&se=2025-07-31T12:28:44Z&sip=108.49.61.242&sv=2024-11-04&sr=c&sig=...
+```
+
+**Folder Structure:**
+```
+container/
+└── root/
+    └── folder1/
+        └── config/        # Additional path from URL
+            ├── config/    # Trigger files
+            │   └── start_converson_1234.txt
+            ├── files/     # Documents to convert
+            │   ├── document1.docx
+            │   └── document2.pdf
+            └── converted/ # Output folder (created automatically)
+                ├── document1.pdf
+                └── document2.pdf
+```
+
+The system automatically detects the URL format and adjusts the folder paths accordingly.
+
 ## File Structure
 
 ```
@@ -128,6 +200,8 @@ doc-converter/
 ├── document_converter.py   # Document conversion using Aspose
 ├── failed_conversions.py   # Failed conversion tracking and CSV management
 ├── view_failures.py        # Utility to view and manage failed conversions
+├── sas_url_handler.py     # SAS URL parsing and authentication
+├── test_sas_url_paths.py  # Test script for SAS URL path parsing
 ├── config.py              # Configuration settings
 ├── requirements.txt        # Python dependencies
 ├── README.md              # This file
