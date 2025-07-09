@@ -59,14 +59,14 @@ def test_sas_url_parsing():
             
             # Verify results
             if account_info['container_name'] == test_case['expected_container']:
-                print("✅ Container name matches expected")
+                print("[OK] Container name matches expected")
             else:
-                print(f"❌ Container name mismatch. Expected: {test_case['expected_container']}, Got: {account_info['container_name']}")
+                print(f"[FAILED] Container name mismatch. Expected: {test_case['expected_container']}, Got: {account_info['container_name']}")
             
             if account_info['additional_path'] == test_case['expected_path']:
-                print("✅ Additional path matches expected")
+                print("[OK] Additional path matches expected")
             else:
-                print(f"❌ Additional path mismatch. Expected: {test_case['expected_path']}, Got: {account_info['additional_path']}")
+                print(f"[FAILED] Additional path mismatch. Expected: {test_case['expected_path']}, Got: {account_info['additional_path']}")
             
             # Test path construction
             test_folder = "config"
@@ -79,7 +79,7 @@ def test_sas_url_parsing():
             print(f"Example path construction: {test_folder} -> {expected_full_path}")
             
         except Exception as e:
-            print(f"❌ Error parsing URL: {str(e)}")
+            print(f"[FAILED] Error parsing URL: {str(e)}")
         
         print("-" * 80)
         print()
@@ -117,7 +117,7 @@ def test_path_construction():
                 print(f"  {folder} -> {full_path}")
             
         except Exception as e:
-            print(f"❌ Error: {str(e)}")
+            print(f"[FAILED] Error: {str(e)}")
         
         print()
 

@@ -6,7 +6,8 @@ Diagnostic script to analyze SAS URL and test different authentication methods.
 import urllib.parse
 from urllib.parse import urlparse, parse_qs
 from azure.storage.blob import BlobServiceClient
-from config import SAS_URL
+from azure.core.pipeline.transport import RequestsTransport
+from config import SAS_URL, CONNECTION_POOL_SIZE, CONNECTION_POOL_MAX_RETRIES, CONNECTION_POOL_TIMEOUT
 
 def analyze_sas_url():
     """Analyze the SAS URL structure and parameters."""
@@ -29,37 +30,48 @@ def analyze_sas_url():
     required = ['sv', 'sig']
     missing = [param for param in required if param not in params]
     if missing:
-        print(f"\n❌ Missing required parameters: {missing}")
+        print(f"\n[FAILED] Missing required parameters: {missing}")
     else:
-        print(f"\n✅ All required parameters present")
+        print(f"\n[OK] All required parameters present")
     
     return parsed, params
 
 def test_authentication_methods(parsed_url, params):
-    """Test different authentication methods."""
+    """Test different authentication methods with connection pool configuration."""
     print("\n=== Testing Authentication Methods ===")
     
     account_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
     container_name = parsed_url.path.strip('/')
     
+    # Configure connection pool settings
+    transport = RequestsTransport(
+        connection_pool_size=CONNECTION_POOL_SIZE,
+        max_retries=CONNECTION_POOL_MAX_RETRIES,
+        timeout=CONNECTION_POOL_TIMEOUT
+    )
+    
     methods = [
         ("Method 1: Direct SAS URL", lambda: BlobServiceClient(
             account_url=account_url,
-            credential=SAS_URL
+            credential=SAS_URL,
+            transport=transport
         )),
         
         ("Method 2: SAS URL as credential", lambda: BlobServiceClient(
             account_url=account_url,
-            credential=SAS_URL
+            credential=SAS_URL,
+            transport=transport
         )),
         
         ("Method 3: Connection string", lambda: BlobServiceClient.from_connection_string(
-            f"BlobEndpoint={account_url};SharedAccessSignature={parsed_url.query}"
+            f"BlobEndpoint={account_url};SharedAccessSignature={parsed_url.query}",
+            transport=transport
         )),
         
         ("Method 4: Reconstructed URL", lambda: BlobServiceClient(
             account_url=account_url,
-            credential=f"{account_url}/{container_name}?{parsed_url.query}"
+            credential=f"{account_url}/{container_name}?{parsed_url.query}",
+            transport=transport
         ))
     ]
     
@@ -71,11 +83,11 @@ def test_authentication_methods(parsed_url, params):
             # Test the connection
             container_client = client.get_container_client(container_name)
             blobs = list(container_client.list_blobs())
-            print(f"✅ {method_name} - SUCCESS! Found {len(blobs)} blobs")
+            print(f"[OK] {method_name} - SUCCESS! Found {len(blobs)} blobs")
             return client
             
         except Exception as e:
-            print(f"❌ {method_name} - FAILED: {str(e)}")
+            print(f"[FAILED] {method_name} - FAILED: {str(e)}")
     
     return None
 
@@ -116,9 +128,9 @@ if __name__ == "__main__":
     client = test_authentication_methods(parsed_url, params)
     
     if client:
-        print("\n✅ Authentication successful!")
+        print("\n[OK] Authentication successful!")
     else:
-        print("\n❌ All authentication methods failed")
+        print("\n[FAILED] All authentication methods failed")
         print("\nPossible solutions:")
         print("1. Check if the SAS URL has expired")
         print("2. Verify the SAS URL has the correct permissions (read, write, list)")

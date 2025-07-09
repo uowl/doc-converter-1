@@ -51,7 +51,7 @@ def show_summary(tracker):
             print(f"  {error_type}: {count}")
     
     if summary['total_failures'] == 0:
-        print("\n✓ No failed conversions recorded")
+        print("\n[OK] No failed conversions recorded")
     else:
         print(f"\nDetailed records available in: failed_conversions.csv")
 
@@ -104,9 +104,9 @@ def export_failures(tracker, output_file, error_type, filename):
     
     try:
         tracker.export_failures_to_csv(output_file, filters)
-        print(f"✓ Exported failures to: {output_file}")
+        print(f"[OK] Exported failures to: {output_file}")
     except Exception as e:
-        print(f"✗ Error exporting failures: {str(e)}")
+        print(f"[FAILED] Error exporting failures: {str(e)}")
 
 def clear_old_records(tracker, days):
     """Clear old failed conversion records."""
@@ -116,10 +116,10 @@ def clear_old_records(tracker, days):
         after_count = len(tracker.get_failed_conversions())
         removed_count = before_count - after_count
         
-        print(f"✓ Cleared {removed_count} old records (older than {days} days)")
+        print(f"[OK] Cleared {removed_count} old records (older than {days} days)")
         print(f"Remaining records: {after_count}")
     except Exception as e:
-        print(f"✗ Error clearing old records: {str(e)}")
+        print(f"[FAILED] Error clearing old records: {str(e)}")
 
 if __name__ == "__main__":
     import datetime

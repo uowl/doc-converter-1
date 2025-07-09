@@ -175,7 +175,7 @@ if __name__ == "__main__":
     show_usage_instructions()
     
     print("=== Summary ===")
-    print("✅ The application now supports SAS URLs with embedded folder paths")
-    print("✅ Automatic path detection and construction")
-    print("✅ Backward compatibility with simple container URLs")
-    print("✅ No configuration changes required for existing setups") 
+    print("[OK] The application now supports SAS URLs with embedded folder paths")
+    print("[OK] Automatic path detection and construction")
+    print("[OK] Backward compatibility with simple container URLs")
+    print("[OK] No configuration changes required for existing setups") 

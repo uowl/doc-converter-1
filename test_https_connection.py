@@ -23,18 +23,18 @@ def test_https_connection():
     # Test basic HTTPS connection
     try:
         response = requests.get(account_url, timeout=10)
-        print(f"✓ HTTPS connection successful (Status: {response.status_code})")
+        print(f"[OK] HTTPS connection successful (Status: {response.status_code})")
     except requests.exceptions.RequestException as e:
-        print(f"✗ HTTPS connection failed: {str(e)}")
+        print(f"[FAILED] HTTPS connection failed: {str(e)}")
         return False
     
     # Test with SAS URL
     try:
         response = requests.get(SAS_URL, timeout=10)
-        print(f"✓ SAS URL connection successful (Status: {response.status_code})")
+        print(f"[OK] SAS URL connection successful (Status: {response.status_code})")
         return True
     except requests.exceptions.RequestException as e:
-        print(f"✗ SAS URL connection failed: {str(e)}")
+        print(f"[FAILED] SAS URL connection failed: {str(e)}")
         return False
 
 if __name__ == "__main__":
