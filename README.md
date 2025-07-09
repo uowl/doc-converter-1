@@ -105,6 +105,24 @@ BATCH_DELAY_SECONDS = 5  # Delay between batches to prevent resource exhaustion
 - **Processing estimates**: Automatic time and resource usage estimates
 - **Configuration validation**: Automatic validation of batch settings
 
+### Connection Pool Configuration
+
+The application uses connection pooling to optimize Azure Blob Storage operations:
+
+```python
+# Connection pool configuration
+CONNECTION_POOL_SIZE = 50  # Maximum number of connections in the pool
+CONNECTION_POOL_MAX_RETRIES = 3  # Maximum number of retries for failed connections
+CONNECTION_POOL_TIMEOUT = 30  # Connection timeout in seconds
+```
+
+**Connection pool features:**
+- **Connection reuse**: Reuses HTTP connections to reduce latency
+- **Concurrent operations**: Supports multiple simultaneous blob operations
+- **Automatic retries**: Handles transient network failures gracefully
+- **Timeout management**: Prevents hanging connections
+- **Resource optimization**: Reduces memory and CPU usage for network operations
+
 ### Progress Bar Configuration
 
 The application includes visual progress tracking for document conversion:

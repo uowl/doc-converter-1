@@ -1,6 +1,8 @@
 import urllib.parse
 from urllib.parse import urlparse, parse_qs, urlencode
 from azure.storage.blob import BlobServiceClient
+from azure.core.pipeline.transport import RequestsTransport
+from config import CONNECTION_POOL_SIZE, CONNECTION_POOL_MAX_RETRIES, CONNECTION_POOL_TIMEOUT
 
 class SASUrlHandler:
     """Handles SAS URL parsing and authentication properly."""
@@ -25,12 +27,23 @@ class SASUrlHandler:
         self.query_params = parse_qs(self.parsed_url.query)
         
     def get_blob_service_client(self):
-        """Create a blob service client with proper SAS URL handling."""
+        """Create a blob service client with proper SAS URL handling and connection pooling."""
         # Use the connection string method that works
         try:
             sas_part = self.original_sas_url.split('?')[1]
             connection_string = f"BlobEndpoint={self.account_url};SharedAccessSignature={sas_part}"
-            client = BlobServiceClient.from_connection_string(connection_string)
+            
+            # Configure connection pool settings
+            transport = RequestsTransport(
+                connection_pool_size=CONNECTION_POOL_SIZE,
+                max_retries=CONNECTION_POOL_MAX_RETRIES,
+                timeout=CONNECTION_POOL_TIMEOUT
+            )
+            
+            client = BlobServiceClient.from_connection_string(
+                connection_string,
+                transport=transport
+            )
             return client
         except Exception as e:
             print(f"Connection string method failed: {str(e)}")

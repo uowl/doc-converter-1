@@ -2,7 +2,7 @@ import logging
 import os
 from urllib.parse import urlparse, parse_qs
 from azure.storage.blob import BlobServiceClient
-from config import SAS_URL, TRIGGER_FILE_PATTERN, OUTPUT_DIR, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER
+from config import SAS_URL, TRIGGER_FILE_PATTERN, OUTPUT_DIR, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER, CONNECTION_POOL_SIZE, CONNECTION_POOL_MAX_RETRIES, CONNECTION_POOL_TIMEOUT
 from sas_url_handler import SASUrlHandler
 from trigger_file_handler import TriggerFileHandler
 
