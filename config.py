@@ -15,7 +15,7 @@ load_dotenv()
 #    In this case, the system will look for config/, files/, and converted/ folders within root/folder1/config/
 
 # JP SAS_URL = "https://sasstoragejp.blob.core.windows.net/mysasstorage?sp=racwdl&st=2025-07-07T04:28:44Z&se=2025-07-31T12:28:44Z&sip=108.49.61.242&sv=2024-11-04&sr=c&sig=O1xmqnb8n5d%2BWRG29VFvyNDGbptS94uFa337MS5M1nc%3D"
-SAS_URL = "https://sasstoragejp.blob.core.windows.net/mysasstorage/jwalin?sp=racwdl&st=2025-07-07T04:28:44Z&se=2025-07-31T12:28:44Z&sip=108.49.61.242&sv=2024-11-04&sr=c&sig=O1xmqnb8n5d%2BWRG29VFvyNDGbptS94uFa337MS5M1nc%3D"
+SAS_URL = "https://sasstoragejpmain.blob.core.windows.net/main?sp=racwdl&st=2025-07-09T03:18:39Z&se=2025-07-31T11:18:39Z&spr=https&sv=2024-11-04&sr=c&sig=2%2FNpZHAoIF2IdWloD4hXmsbImRvZfKoxYSiVpUGPurk%3D"
 
 # Azure blob storage folder structure
 # These folders will be created within the container or additional path specified in SAS_URL
@@ -23,7 +23,7 @@ AZURE_CONFIG_FOLDER = "config"  # Folder in Azure blob storage for trigger files
 AZURE_FILES_FOLDER = "files"    # Folder in Azure blob storage for documents to convert
 
 # Trigger file pattern (monitored in Azure config folder)
-TRIGGER_FILE_PATTERN = "start_converson_1234.txt"
+TRIGGER_FILE_PATTERN = "start_conversion_1234.txt"
 
 # Polling interval in seconds (2 minutes)
 POLLING_INTERVAL = 120

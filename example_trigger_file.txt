@@ -1,0 +1,40 @@
+# Example trigger file for document conversion
+#
+# This file should be uploaded to the config folder in your MAIN SAS URL container only.
+# The system will read this file and use the specified source and destination SAS URLs.
+#
+# - The config folder exists ONLY in the main SAS URL container.
+# - The files folder exists ONLY in the source SAS URL container/path.
+# - The converted folder exists ONLY in the destination SAS URL container/path.
+#
+# Example content:
+
+source_sas_url:https://account.blob.core.windows.net/source-container/source-path?sp=...&sv=...&sig=...
+dest_sas_url:https://account.blob.core.windows.net/dest-container/dest-path?sp=...&sv=...&sig=...
+
+# Folder structure expectations:
+#
+# MAIN SAS URL (used only for trigger file monitoring):
+# main-container/
+# └── main-path/
+#     └── config/
+#         └── start_conversion_1234.txt  (this file)
+#
+# SOURCE SAS URL (used only for reading files):
+# source-container/
+# └── source-path/
+#     └── files/
+#         ├── document1.docx
+#         └── document2.pdf
+#
+# DESTINATION SAS URL (used only for uploading converted files):
+# dest-container/
+# └── dest-path/
+#     └── converted/
+#         ├── document1.pdf
+#         └── document2.pdf
+#
+# Note:
+# - The config folder is NOT required in the source or destination containers.
+# - The files folder is NOT required in the main or destination containers.
+# - The converted folder is NOT required in the main or source containers. 

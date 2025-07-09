@@ -4,10 +4,15 @@ from urllib.parse import urlparse, parse_qs
 from azure.storage.blob import BlobServiceClient
 from config import SAS_URL, TRIGGER_FILE_PATTERN, OUTPUT_DIR, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER
 from sas_url_handler import SASUrlHandler
+from trigger_file_handler import TriggerFileHandler
 
 class BlobMonitor:
-    def __init__(self):
-        self.sas_url = SAS_URL
+    def __init__(self, sas_url=None):
+        """
+        Initialize BlobMonitor with optional SAS URL.
+        If no SAS URL provided, uses the default from config.
+        """
+        self.sas_url = sas_url or SAS_URL
         self.trigger_pattern = TRIGGER_FILE_PATTERN
         self.output_dir = OUTPUT_DIR
         self.azure_config_folder = AZURE_CONFIG_FOLDER
@@ -94,6 +99,24 @@ class BlobMonitor:
                 self.logger.error(f"Additional path: {self.additional_path}")
             return False
     
+    def get_trigger_file_config(self):
+        """Get the trigger file configuration with source and destination SAS URLs."""
+        try:
+            config_path = self._get_full_path(self.azure_config_folder)
+            trigger_blob_name = f"{config_path}/{self.trigger_pattern}"
+            
+            # Create trigger file handler
+            trigger_handler = TriggerFileHandler()
+            
+            # Read and parse the trigger file
+            config = trigger_handler.read_trigger_file(self, trigger_blob_name)
+            
+            return config
+            
+        except Exception as e:
+            self.logger.error(f"Error getting trigger file configuration: {str(e)}")
+            raise
+    
     def get_documents_to_convert(self):
         """Get list of documents that need to be converted from Azure files folder."""
         try:
@@ -170,4 +193,17 @@ class BlobMonitor:
             
         except Exception as e:
             self.logger.error(f"Error deleting trigger file from Azure config folder: {str(e)}")
+            return False 
+
+    def upload_local_file(self, local_path, dest_blob_path):
+        """Upload a local file to the specified blob path in this container."""
+        try:
+            container_client = self.blob_service_client.get_container_client(self.container_name)
+            blob_client = container_client.get_blob_client(dest_blob_path)
+            with open(local_path, "rb") as file:
+                blob_client.upload_blob(file, overwrite=True)
+            self.logger.info(f"Uploaded local file {local_path} as {dest_blob_path}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error uploading local file {local_path} as {dest_blob_path}: {str(e)}")
             return False 

@@ -9,7 +9,8 @@ from config import POLLING_INTERVAL, TRIGGER_FILE_PATTERN, AZURE_CONFIG_FOLDER, 
 
 class DocumentConverterApp:
     def __init__(self):
-        self.blob_monitor = BlobMonitor()
+        # Initialize with main SAS URL for monitoring trigger files
+        self.main_blob_monitor = BlobMonitor()
         self.document_converter = DocumentConverter()
         self.failed_tracker = FailedConversionsTracker()
         self.logger = logging.getLogger(__name__)
@@ -37,26 +38,57 @@ class DocumentConverterApp:
         next_polling_time = datetime.now() + timedelta(seconds=POLLING_INTERVAL)
         self.logger.info(f"Next polling will occur at: {next_polling_time.strftime('%Y-%m-%d %H:%M:%S')}")
     
+    def _upload_job_log(self):
+        """Upload the doc_converter.log file to the main SAS URL's job_status/ folder with a datetime-stamped filename."""
+        try:
+            from config import LOG_FILE
+            log_file = LOG_FILE
+            if not os.path.exists(log_file):
+                self.logger.warning(f"Log file {log_file} does not exist, skipping upload.")
+                return
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            dest_blob_path = f"job_status/job_{timestamp}.log"
+            success = self.main_blob_monitor.upload_local_file(log_file, dest_blob_path)
+            if success:
+                self.logger.info(f"[OK] Uploaded job log to {dest_blob_path} in main SAS URL container.")
+            else:
+                self.logger.error(f"[FAILED] Failed to upload job log to {dest_blob_path}.")
+        except Exception as e:
+            self.logger.error(f"Error uploading job log: {str(e)}")
+    
     def process_documents(self):
         """Process all documents when trigger file is found."""
         try:
             self.logger.info("Starting document processing...")
             
-            # Get list of documents to convert
-            documents = self.blob_monitor.get_documents_to_convert()
+            # Get trigger file configuration with source and destination SAS URLs
+            trigger_config = self.main_blob_monitor.get_trigger_file_config()
+            source_sas_url = trigger_config['source_sas_url']
+            dest_sas_url = trigger_config['dest_sas_url']
+            
+            self.logger.info(f"Using source SAS URL: {source_sas_url}")
+            self.logger.info(f"Using destination SAS URL: {dest_sas_url}")
+            
+            # Create source and destination blob monitors
+            source_blob_monitor = BlobMonitor(source_sas_url)
+            dest_blob_monitor = BlobMonitor(dest_sas_url)
+            
+            # Get list of documents to convert from source
+            documents = source_blob_monitor.get_documents_to_convert()
             
             if not documents:
-                self.logger.info("No documents found to convert in Azure files folder.")
+                self.logger.info("No documents found to convert in source Azure files folder.")
+                self._upload_job_log()
                 return
             
-            self.logger.info(f"Found {len(documents)} documents to convert from Azure files folder.")
+            self.logger.info(f"Found {len(documents)} documents to convert from source Azure files folder.")
             
             # Process each document
             for document_name in documents:
-                self._process_single_document(document_name)
+                self._process_single_document(document_name, source_blob_monitor, dest_blob_monitor)
             
             # Delete the trigger file after processing
-            self.blob_monitor.delete_trigger_file()
+            self.main_blob_monitor.delete_trigger_file()
             
             # Display failure summary after processing
             self._display_failure_summary()
@@ -68,6 +100,8 @@ class DocumentConverterApp:
             
         except Exception as e:
             self.logger.error(f"Error in document processing: {str(e)}")
+        finally:
+            self._upload_job_log()
     
     def _display_failure_summary(self):
         """Display a summary of failed conversions."""
@@ -93,8 +127,8 @@ class DocumentConverterApp:
         except Exception as e:
             self.logger.error(f"Error displaying failure summary: {str(e)}")
     
-    def _process_single_document(self, document_name):
-        """Process a single document."""
+    def _process_single_document(self, document_name, source_blob_monitor, dest_blob_monitor):
+        """Process a single document using source and destination blob monitors."""
         try:
             # Extract just the filename for display
             filename = os.path.basename(document_name)
@@ -113,9 +147,9 @@ class DocumentConverterApp:
             except:
                 pass
             
-            # Download the document
-            if not self.blob_monitor.download_blob(document_name, temp_file_path):
-                error_msg = f"Failed to download {filename}"
+            # Download the document from source
+            if not source_blob_monitor.download_blob(document_name, temp_file_path):
+                error_msg = f"[FAILED] Failed to download {filename} from source"
                 self.logger.error(error_msg)
                 self.failed_tracker.add_failed_conversion(
                     filename=filename,
@@ -131,10 +165,10 @@ class DocumentConverterApp:
                 converted_file_path = self.document_converter.convert_to_pdf(temp_file_path)
                 if converted_file_path:
                     file_type = "PDF" if file_ext == '.pdf' else "TIF"
-                    self.logger.info(f"Successfully copied {file_type} file: {filename}")
+                    self.logger.info(f"[OK] Successfully copied {file_type} file: {filename}")
                 else:
                     file_type = "PDF" if file_ext == '.pdf' else "TIF"
-                    error_msg = f"Failed to copy {file_type} file {filename}"
+                    error_msg = f"[FAILED] Failed to copy {file_type} file {filename}"
                     self.logger.error(error_msg)
                     self.failed_tracker.add_failed_conversion(
                         filename=filename,
@@ -147,7 +181,7 @@ class DocumentConverterApp:
                 # For other files, convert to PDF
                 converted_file_path = self.document_converter.convert_to_pdf(temp_file_path)
                 if not converted_file_path:
-                    error_msg = f"Failed to convert {filename}"
+                    error_msg = f"[FAILED] Failed to convert {filename}"
                     self.logger.error(error_msg)
                     self.failed_tracker.add_failed_conversion(
                         filename=filename,
@@ -157,9 +191,9 @@ class DocumentConverterApp:
                     )
                     return
             
-            # Upload the processed file (PDF, TIF, or converted PDF)
+            # Upload the processed file to destination
             if converted_file_path:
-                # Upload the processed file to the converted folder
+                # Upload the processed file to the converted folder in destination
                 processed_filename = os.path.basename(converted_file_path)
                 # For TIF files, keep original extension; for others, use PDF extension
                 if file_ext in ['.tif', '.tiff']:
@@ -167,20 +201,20 @@ class DocumentConverterApp:
                 else:
                     blob_name = f"converted/{processed_filename}"  # Use PDF extension for converted files
                 
-                # If there's an additional path in the SAS URL, prepend it to the blob name
-                if hasattr(self.blob_monitor, 'additional_path') and self.blob_monitor.additional_path:
-                    blob_name = f"{self.blob_monitor.additional_path}/{blob_name}"
+                # If destination has additional path, prepend it to the blob name
+                if hasattr(dest_blob_monitor, 'additional_path') and dest_blob_monitor.additional_path:
+                    blob_name = f"{dest_blob_monitor.additional_path}/{blob_name}"
                 
-                if self.blob_monitor.upload_blob(converted_file_path, blob_name):
+                if dest_blob_monitor.upload_blob(converted_file_path, blob_name):
                     if file_ext in ['.pdf', '.tif', '.tiff']:
                         file_type = "PDF" if file_ext == '.pdf' else "TIF"
-                        self.logger.info(f"Successfully copied and uploaded {file_type}: {filename}")
+                        self.logger.info(f"[OK] Successfully copied and uploaded {file_type}: {filename}")
                     else:
-                        self.logger.info(f"Successfully converted and uploaded: {filename}")
+                        self.logger.info(f"[OK] Successfully converted and uploaded: {filename}")
                     # Mark as processed
-                    self.blob_monitor.processed_files.add(document_name)
+                    source_blob_monitor.processed_files.add(document_name)
                 else:
-                    error_msg = f"Failed to upload processed file for {filename}"
+                    error_msg = f"[FAILED] Failed to upload processed file for {filename} to destination"
                     self.logger.error(error_msg)
                     self.failed_tracker.add_failed_conversion(
                         filename=filename,
@@ -228,7 +262,7 @@ class DocumentConverterApp:
         try:
             while True:
                 # Check for trigger file
-                if self.blob_monitor.check_for_trigger_file():
+                if self.main_blob_monitor.check_for_trigger_file():
                     self.logger.info("Trigger file detected! Starting document conversion...")
                     self.process_documents()
                 else:
