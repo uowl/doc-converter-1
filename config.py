@@ -48,6 +48,20 @@ SUPPORTED_EXTENSIONS = {
 # Output directory for converted files
 OUTPUT_DIR = "converted_documents"
 
+# Multi-threading configuration
+ENABLE_MULTI_THREADING = True  # Set to False to disable multi-threading
+MAX_WORKER_THREADS = 16  # Maximum number of concurrent conversion threads
+MIN_FILES_FOR_MULTI_THREADING = 4  # Minimum files required to enable multi-threading
+
+# Batch processing configuration
+ENABLE_BATCH_PROCESSING = True  # Set to False to disable batch processing
+BATCH_SIZE = 1000  # Number of files to process in each batch
+BATCH_DELAY_SECONDS = 5  # Delay between batches to prevent resource exhaustion
+
+# Progress bar configuration
+ENABLE_PROGRESS_BARS = True  # Set to False to disable progress bars
+PROGRESS_BAR_DESCRIPTION = "Converting documents"  # Description for progress bars
+
 # Logging configuration
 LOG_LEVEL = "INFO"
 LOG_FILE = "doc_converter.log"

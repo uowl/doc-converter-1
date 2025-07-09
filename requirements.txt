@@ -3,4 +3,5 @@ aspose-words>=25.6.0
 aspose-pdf>=25.6.0
 python-dotenv>=1.0.0
 schedule>=1.2.0
-requests>=2.31.0 
+requests>=2.31.0
+tqdm>=4.65.0 

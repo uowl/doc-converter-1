@@ -5,7 +5,9 @@ from datetime import datetime, timedelta
 from blob_monitor import BlobMonitor
 from document_converter import DocumentConverter
 from failed_conversions import FailedConversionsTracker
-from config import POLLING_INTERVAL, TRIGGER_FILE_PATTERN, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER
+from multi_thread_processor import MultiThreadProcessor
+from batch_processor import BatchProcessor
+from config import POLLING_INTERVAL, TRIGGER_FILE_PATTERN, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER, ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, ENABLE_BATCH_PROCESSING, BATCH_SIZE, BATCH_DELAY_SECONDS
 
 class DocumentConverterApp:
     def __init__(self):
@@ -13,6 +15,8 @@ class DocumentConverterApp:
         self.main_blob_monitor = BlobMonitor()
         self.document_converter = DocumentConverter()
         self.failed_tracker = FailedConversionsTracker()
+        self.multi_thread_processor = MultiThreadProcessor(self.failed_tracker)
+        self.batch_processor = BatchProcessor(self.failed_tracker)
         self.logger = logging.getLogger(__name__)
         
         # Setup logging with reduced Azure SDK verbosity
@@ -83,9 +87,43 @@ class DocumentConverterApp:
             
             self.logger.info(f"Found {len(documents)} documents to convert from source Azure files folder.")
             
-            # Process each document
-            for document_name in documents:
-                self._process_single_document(document_name, source_blob_monitor, dest_blob_monitor)
+            # Log multi-threading configuration
+            if ENABLE_MULTI_THREADING:
+                self.logger.info(f"[OK] Multi-threading enabled with {MAX_WORKER_THREADS} max threads")
+                self.logger.info(f"[OK] Minimum files for multi-threading: {MIN_FILES_FOR_MULTI_THREADING}")
+            else:
+                self.logger.info("[OK] Multi-threading disabled - using sequential processing")
+            
+            # Log progress bar configuration
+            if ENABLE_PROGRESS_BARS:
+                self.logger.info("[OK] Progress bars enabled - will show conversion progress")
+            else:
+                self.logger.info("[OK] Progress bars disabled - using standard logging only")
+            
+            # Log batch processing configuration
+            if ENABLE_BATCH_PROCESSING:
+                self.logger.info(f"[OK] Batch processing enabled - batch size: {BATCH_SIZE}, delay: {BATCH_DELAY_SECONDS}s")
+                
+                # Get processing estimates
+                estimates = self.batch_processor.get_batch_processing_estimate(len(documents))
+                self.logger.info(f"[OK] Processing estimates:")
+                self.logger.info(f"  - Estimated batches: {estimates['estimated_batches']}")
+                self.logger.info(f"  - Estimated time: {estimates['estimated_time_hours']:.1f} hours ({estimates['estimated_time_days']:.1f} days)")
+                self.logger.info(f"  - Estimated memory usage: {estimates['memory_usage_mb']:.0f} MB")
+                
+                # Validate batch configuration
+                validation = self.batch_processor.validate_batch_configuration()
+                if not all([validation['batch_size_ok'], validation['thread_count_ok'], validation['delay_ok']]):
+                    self.logger.warning("[WARNING] Batch configuration issues detected:")
+                    for recommendation in validation['recommendations']:
+                        self.logger.warning(f"  - {recommendation}")
+            else:
+                self.logger.info("[OK] Batch processing disabled - processing all documents at once")
+            
+            # Process documents using batch processor
+            processing_results = self.batch_processor.process_documents_in_batches(
+                documents, source_blob_monitor, dest_blob_monitor
+            )
             
             # Delete the trigger file after processing
             self.main_blob_monitor.delete_trigger_file()
@@ -127,130 +165,7 @@ class DocumentConverterApp:
         except Exception as e:
             self.logger.error(f"Error displaying failure summary: {str(e)}")
     
-    def _process_single_document(self, document_name, source_blob_monitor, dest_blob_monitor):
-        """Process a single document using source and destination blob monitors."""
-        try:
-            # Extract just the filename for display
-            filename = os.path.basename(document_name)
-            file_ext = os.path.splitext(filename)[1].lower()
-            self.logger.info(f"Processing document: {filename} (from {document_name})")
-            
-            # Create temporary file path
-            temp_file_path = os.path.join("temp", filename)
-            os.makedirs("temp", exist_ok=True)
-            
-            # Get file size for tracking
-            file_size = 0
-            try:
-                if os.path.exists(temp_file_path):
-                    file_size = os.path.getsize(temp_file_path)
-            except:
-                pass
-            
-            # Download the document from source
-            if not source_blob_monitor.download_blob(document_name, temp_file_path):
-                error_msg = f"[FAILED] Failed to download {filename} from source"
-                self.logger.error(error_msg)
-                self.failed_tracker.add_failed_conversion(
-                    filename=filename,
-                    error_type="DOWNLOAD_FAILED",
-                    error_message=error_msg,
-                    file_size_bytes=file_size
-                )
-                return
-            
-            # Process the document based on file type
-            if file_ext in ['.pdf', '.tif', '.tiff']:
-                # For PDF and TIF files, copy as-is
-                converted_file_path = self.document_converter.convert_to_pdf(temp_file_path)
-                if converted_file_path:
-                    file_type = "PDF" if file_ext == '.pdf' else "TIF"
-                    self.logger.info(f"[OK] Successfully copied {file_type} file: {filename}")
-                else:
-                    file_type = "PDF" if file_ext == '.pdf' else "TIF"
-                    error_msg = f"[FAILED] Failed to copy {file_type} file {filename}"
-                    self.logger.error(error_msg)
-                    self.failed_tracker.add_failed_conversion(
-                        filename=filename,
-                        error_type="COPY_FAILED",
-                        error_message=error_msg,
-                        file_size_bytes=file_size
-                    )
-                    return
-            else:
-                # For other files, convert to PDF
-                converted_file_path = self.document_converter.convert_to_pdf(temp_file_path)
-                if not converted_file_path:
-                    error_msg = f"[FAILED] Failed to convert {filename}"
-                    self.logger.error(error_msg)
-                    self.failed_tracker.add_failed_conversion(
-                        filename=filename,
-                        error_type="CONVERSION_FAILED",
-                        error_message=error_msg,
-                        file_size_bytes=file_size
-                    )
-                    return
-            
-            # Upload the processed file to destination
-            if converted_file_path:
-                # Upload the processed file to the converted folder in destination
-                processed_filename = os.path.basename(converted_file_path)
-                # For TIF files, keep original extension; for others, use PDF extension
-                if file_ext in ['.tif', '.tiff']:
-                    blob_name = f"converted/{processed_filename}"  # Keep original TIF extension
-                else:
-                    blob_name = f"converted/{processed_filename}"  # Use PDF extension for converted files
-                
-                # If destination has additional path, prepend it to the blob name
-                if hasattr(dest_blob_monitor, 'additional_path') and dest_blob_monitor.additional_path:
-                    blob_name = f"{dest_blob_monitor.additional_path}/{blob_name}"
-                
-                if dest_blob_monitor.upload_blob(converted_file_path, blob_name):
-                    if file_ext in ['.pdf', '.tif', '.tiff']:
-                        file_type = "PDF" if file_ext == '.pdf' else "TIF"
-                        self.logger.info(f"[OK] Successfully copied and uploaded {file_type}: {filename}")
-                    else:
-                        self.logger.info(f"[OK] Successfully converted and uploaded: {filename}")
-                    # Mark as processed
-                    source_blob_monitor.processed_files.add(document_name)
-                else:
-                    error_msg = f"[FAILED] Failed to upload processed file for {filename} to destination"
-                    self.logger.error(error_msg)
-                    self.failed_tracker.add_failed_conversion(
-                        filename=filename,
-                        error_type="UPLOAD_FAILED",
-                        error_message=error_msg,
-                        file_size_bytes=file_size
-                    )
-            
-            # Clean up temporary files immediately after successful processing
-            if converted_file_path:
-                # Delete the downloaded original file to conserve space
-                self.document_converter.cleanup_temp_files(temp_file_path)
-                if file_ext in ['.pdf', '.tif', '.tiff']:
-                    file_type = "PDF" if file_ext == '.pdf' else "TIF"
-                    self.logger.info(f"Deleted downloaded {file_type} file to conserve space: {filename}")
-                else:
-                    self.logger.info(f"Deleted downloaded file to conserve space: {filename}")
-                
-                # Also clean up the processed file from local storage after upload
-                if os.path.exists(converted_file_path):
-                    self.document_converter.cleanup_temp_files(converted_file_path)
-                    self.logger.info(f"Cleaned up local processed file: {os.path.basename(converted_file_path)}")
-            else:
-                # If processing failed, still clean up the downloaded file
-                self.document_converter.cleanup_temp_files(temp_file_path)
-                self.logger.info(f"Cleaned up downloaded file after failed processing: {filename}")
-                
-        except Exception as e:
-            error_msg = f"Error processing document {filename}: {str(e)}"
-            self.logger.error(error_msg)
-            self.failed_tracker.add_failed_conversion(
-                filename=filename,
-                error_type="PROCESSING_ERROR",
-                error_message=error_msg,
-                file_size_bytes=0
-            )
+
     
     def run(self):
         """Main application loop."""

@@ -5,11 +5,16 @@ A Python application that monitors Azure Blob Storage for a trigger file and con
 ## Features
 
 - **Azure Blob Storage Monitoring**: Continuously monitors Azure Blob Storage for a specific trigger file in a `config` folder
+- **Multi-Threaded Document Conversion**: Processes multiple documents concurrently using configurable thread pools
+- **Batch Processing**: Processes large document sets in manageable batches to prevent memory issues
 - **Document Conversion**: Converts various document formats to PDF using Aspose libraries
 - **Supported Formats**: DOC, DOCX, TXT, RTF, ODT, HTML, HTM, JPG, PNG, TIF, PDF
 - **PDF/TIF Handling**: PDF and TIF files are copied as-is without conversion
 - **Image Conversion**: JPG and PNG images are converted to PDF format
 - **Automatic Processing**: Downloads documents from `files` folder, converts them, and uploads the PDFs back to blob storage
+- **Thread-Safe Operations**: Thread-safe logging, error handling, and resource management
+- **Progress Bars**: Visual progress tracking for document conversion with real-time updates
+- **Resource Management**: Automatic memory cleanup and batch delays to prevent system overload
 - **Logging**: Comprehensive logging for monitoring and debugging
 
 ## Prerequisites
@@ -56,6 +61,68 @@ your-blob-container/
 
 Edit `config.py` to customize the application:
 
+### Multi-Threading Configuration
+
+The application supports multi-threaded document processing for improved performance:
+
+```python
+# Multi-threading configuration
+ENABLE_MULTI_THREADING = True  # Set to False to disable multi-threading
+MAX_WORKER_THREADS = 4  # Maximum number of concurrent conversion threads
+MIN_FILES_FOR_MULTI_THREADING = 4  # Minimum files required to enable multi-threading
+```
+
+**Multi-threading behavior:**
+- **Enabled by default**: Multi-threading is enabled when `ENABLE_MULTI_THREADING = True`
+- **Minimum file threshold**: Multi-threading only activates when processing 4 or more files (configurable via `MIN_FILES_FOR_MULTI_THREADING`)
+- **Thread count**: Uses up to 16 concurrent threads (configurable via `MAX_WORKER_THREADS`)
+- **Thread safety**: All operations are thread-safe with proper synchronization
+- **Fallback**: Automatically falls back to sequential processing for fewer files or when disabled
+
+**Performance benefits:**
+- **Concurrent processing**: Multiple documents are converted simultaneously
+- **Reduced total time**: Significantly faster processing for large batches
+- **Resource efficiency**: Optimal use of CPU cores and network bandwidth
+- **Thread isolation**: Each thread has its own document converter instance
+
+### Batch Processing Configuration
+
+The application supports batch processing for large document sets:
+
+```python
+# Batch processing configuration
+ENABLE_BATCH_PROCESSING = True  # Set to False to disable batch processing
+BATCH_SIZE = 1000  # Number of files to process in each batch
+BATCH_DELAY_SECONDS = 5  # Delay between batches to prevent resource exhaustion
+```
+
+**Batch processing features:**
+- **Memory management**: Processes documents in manageable chunks to prevent memory issues
+- **Resource cleanup**: Automatic cleanup between batches to free system resources
+- **Progress tracking**: Overall progress bar showing completion across all batches
+- **Batch delays**: Configurable delays between batches to prevent system overload
+- **Error isolation**: Failures in one batch don't affect subsequent batches
+- **Processing estimates**: Automatic time and resource usage estimates
+- **Configuration validation**: Automatic validation of batch settings
+
+### Progress Bar Configuration
+
+The application includes visual progress tracking for document conversion:
+
+```python
+# Progress bar configuration
+ENABLE_PROGRESS_BARS = True  # Set to False to disable progress bars
+PROGRESS_BAR_DESCRIPTION = "Converting documents"  # Description for progress bars
+```
+
+**Progress bar features:**
+- **Real-time updates**: Shows current file being processed
+- **Progress tracking**: Displays completed/total documents
+- **Time estimates**: Shows elapsed time and estimated remaining time
+- **Processing rate**: Displays documents processed per second
+- **Thread-safe**: Works correctly with multi-threaded processing
+- **Fallback support**: Gracefully handles missing tqdm library
+
 ```python
 # Azure Blob Storage Configuration
 # SAS URL can be in two formats:
@@ -72,7 +139,7 @@ AZURE_CONFIG_FOLDER = "config"  # Folder for trigger files
 AZURE_FILES_FOLDER = "files"    # Folder for documents to convert
 
 # Trigger file pattern (monitored in Azure config folder)
-TRIGGER_FILE_PATTERN = "start_converson_1234.txt"
+TRIGGER_FILE_PATTERN = "start_conversion_1234.txt"
 
 # Polling interval in seconds (2 minutes)
 POLLING_INTERVAL = 120
@@ -286,12 +353,15 @@ Example log entries:
 ```
 doc-converter/
 ├── main.py                 # Main application entry point
+├── multi_thread_processor.py # Multi-threaded document processing
+├── batch_processor.py      # Batch processing for large document sets
 ├── blob_monitor.py         # Blob storage monitoring and operations
 ├── document_converter.py   # Document conversion using Aspose
 ├── failed_conversions.py   # Failed conversion tracking and CSV management
 ├── view_failures.py        # Utility to view and manage failed conversions
 ├── sas_url_handler.py     # SAS URL parsing and authentication
 ├── test_sas_url_paths.py  # Test script for SAS URL path parsing
+├── test_multi_threading.py # Test script for multi-threading functionality
 ├── config.py              # Configuration settings
 ├── requirements.txt        # Python dependencies
 ├── README.md              # This file
@@ -391,9 +461,16 @@ LOG_LEVEL = "DEBUG"
 
 ## Performance
 
+- **Multi-Threaded Processing**: Up to 16 documents can be processed concurrently (configurable)
+- **Batch Processing**: Large document sets processed in manageable chunks (default 1000 files per batch)
+- **Thread Pool Management**: Automatic thread pool creation and cleanup for optimal resource usage
+- **Thread-Safe Operations**: All shared resources are properly synchronized
+- **Performance Monitoring**: Processing time and thread usage statistics are logged
+- **Progress Tracking**: Visual progress bars with real-time updates and time estimates
+- **Resource Management**: Automatic memory cleanup and batch delays to prevent system overload
 - **Polling Interval**: Adjust `POLLING_INTERVAL` in `config.py` based on your needs (currently set to 2 minutes)
 - **Batch Processing**: All documents are processed when the trigger file is detected
-- **Memory Usage**: Documents are processed one at a time to manage memory usage
+- **Memory Usage**: Documents are processed with thread-local storage to manage memory usage
 
 ## License
 
