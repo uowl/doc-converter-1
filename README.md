@@ -191,6 +191,96 @@ container/
 
 The system automatically detects the URL format and adjusts the folder paths accordingly.
 
+## Dynamic SAS URL Support
+
+The application now supports dynamic SAS URL configuration through trigger files. This allows you to specify different source and destination SAS URLs for each job.
+
+### Trigger File Format
+
+Create a trigger file with the following content:
+
+```
+source_sas_url:https://account.blob.core.windows.net/source-container/source-path?sp=...&sv=...&sig=...
+dest_sas_url:https://account.blob.core.windows.net/dest-container/dest-path?sp=...&sv=...&sig=...
+```
+
+### Folder Structure for Dynamic SAS URLs
+
+**MAIN SAS URL** (used only for trigger file monitoring):
+```
+main-container/
+└── main-path/
+    └── config/
+        └── start_conversion_1234.txt  (trigger file)
+```
+
+**SOURCE SAS URL** (used only for reading files):
+```
+source-container/
+└── source-path/
+    └── files/
+        ├── document1.docx
+        └── document2.pdf
+```
+
+**DESTINATION SAS URL** (used only for uploading converted files):
+```
+dest-container/
+└── dest-path/
+    └── converted/
+        ├── document1.pdf
+        └── document2.pdf
+```
+
+### How Dynamic SAS URLs Work
+
+1. **Main SAS URL**: The application starts with a main SAS URL that monitors the `config/` folder for trigger files
+2. **Trigger File**: When a trigger file is detected, the application reads the `source_sas_url` and `dest_sas_url` from the file
+3. **Source Operations**: Files are downloaded from the `files/` folder in the source SAS URL container
+4. **Destination Operations**: Converted files are uploaded to the `converted/` folder in the destination SAS URL container
+5. **Job Status**: Log files are uploaded to the `job_status/` folder in the main SAS URL container
+
+### Example Usage
+
+1. **Upload trigger file** to your main SAS URL's `config/` folder:
+   ```
+   config/start_conversion_1234.txt
+   ```
+
+2. **Content of trigger file**:
+   ```
+   source_sas_url:https://account.blob.core.windows.net/source-container/source-path?sp=racwdl&sv=2024-11-04&sig=...
+   dest_sas_url:https://account.blob.core.windows.net/dest-container/dest-path?sp=racwdl&sv=2024-11-04&sig=...
+   ```
+
+3. **The application will**:
+   - Read files from `source-container/source-path/files/`
+   - Convert documents to PDF
+   - Upload converted files to `dest-container/dest-path/converted/`
+   - Upload job log to `main-container/main-path/job_status/job_YYYYMMDD_HHMMSS.log`
+
+## Job Status Logging
+
+After each job completes (success or failure), the application automatically uploads the log file to the main SAS URL's `job_status/` folder with a timestamped filename.
+
+### Log File Location
+
+- **Local**: `doc_converter.log` (configurable via `LOG_FILE` in `config.py`)
+- **Remote**: `job_status/job_YYYYMMDD_HHMMSS.log` in the main SAS URL container
+
+### Log Format
+
+The application uses consistent logging indicators:
+- `[OK]` for success messages
+- `[FAILED]` for failure messages
+
+Example log entries:
+```
+[OK] Successfully converted and uploaded: document1.docx
+[FAILED] Failed to download document2.pdf from source
+[OK] Uploaded job log to job_status/job_20240115_143022.log in main SAS URL container.
+```
+
 ## File Structure
 
 ```
