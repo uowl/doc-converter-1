@@ -164,13 +164,17 @@ class MultiThreadProcessor:
                 
                 # Upload the processed file to destination
                 if converted_file_path:
-                    # Upload the processed file to the converted folder in destination
-                    processed_filename = os.path.basename(converted_file_path)
+                    # Get the original filename without thread information
+                    original_filename = os.path.basename(document_name)
+                    original_base_name = os.path.splitext(original_filename)[0]
+                    
                     # For TIF files, keep original extension; for others, use PDF extension
                     if file_ext in ['.tif', '.tiff']:
-                        blob_name = f"converted/{processed_filename}"  # Keep original TIF extension
+                        dest_filename = original_filename  # Keep original filename with extension
                     else:
-                        blob_name = f"converted/{processed_filename}"  # Use PDF extension for converted files
+                        dest_filename = f"{original_base_name}.pdf"  # Use PDF extension for converted files
+                    
+                    blob_name = f"converted/{dest_filename}"
                     
                     # If destination has additional path, prepend it to the blob name
                     if hasattr(dest_blob_monitor, 'additional_path') and dest_blob_monitor.additional_path:
@@ -402,13 +406,17 @@ class MultiThreadProcessor:
                 
                 # Upload the processed file to destination
                 if converted_file_path:
-                    # Upload the processed file to the converted folder in destination
-                    processed_filename = os.path.basename(converted_file_path)
+                    # Get the original filename without thread information
+                    original_filename = os.path.basename(document_name)
+                    original_base_name = os.path.splitext(original_filename)[0]
+                    
                     # For TIF files, keep original extension; for others, use PDF extension
                     if file_ext in ['.tif', '.tiff']:
-                        blob_name = f"converted/{processed_filename}"  # Keep original TIF extension
+                        dest_filename = original_filename  # Keep original filename with extension
                     else:
-                        blob_name = f"converted/{processed_filename}"  # Use PDF extension for converted files
+                        dest_filename = f"{original_base_name}.pdf"  # Use PDF extension for converted files
+                    
+                    blob_name = f"converted/{dest_filename}"
                     
                     # If destination has additional path, prepend it to the blob name
                     if hasattr(dest_blob_monitor, 'additional_path') and dest_blob_monitor.additional_path:
