@@ -66,9 +66,6 @@ CONNECTION_POOL_TIMEOUT = 30  # Connection timeout in seconds
 # Progress bar configuration
 ENABLE_PROGRESS_BARS = True  # Set to False to disable progress bars
 PROGRESS_BAR_DESCRIPTION = "Converting documents"  # Description for progress bars
-DISABLE_INDIVIDUAL_PROGRESS_BARS_IN_BATCH = True  # Disable individual progress bars during batch processing to prevent overlap
-PROGRESS_BAR_LOG_DELAY = 0.1  # Delay in seconds after logging to prevent progress bar interference
-DISABLE_LOGGING_DURING_PROGRESS = True  # Disable logging during progress bar display to prevent interference
 
 # Logging configuration
 LOG_LEVEL = "INFO"
