@@ -95,10 +95,7 @@ class MultiThreadProcessor:
             filename = os.path.basename(document_name)
             file_ext = os.path.splitext(filename)[1].lower()
             
-            # Update progress bar description with current file
-            if progress_bar:
-                with self._progress_lock:
-                    progress_bar.set_description(f"Converting {filename}")
+
             
             result = {
                 'document_name': document_name,
@@ -352,9 +349,7 @@ class MultiThreadProcessor:
             file_ext = os.path.splitext(filename)[1].lower()
             self.logger.debug(f"Processing document: {filename}")
             
-            # Update progress bar description
-            if progress_bar:
-                progress_bar.set_description(f"Converting {filename}")
+
             
             # Create temporary file path
             temp_file_path = os.path.join("temp", filename)

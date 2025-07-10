@@ -61,7 +61,7 @@ BATCH_DELAY_SECONDS = 5  # Delay between batches to prevent resource exhaustion
 # Progress bar configuration
 ENABLE_PROGRESS_BARS = True  # Set to False to disable progress bars
 PROGRESS_BAR_DESCRIPTION = "Converting documents"  # Description for progress bars
-PROGRESS_BAR_UPDATE_FREQUENCY = 10  # Update progress bar every N files processed
+PROGRESS_BAR_UPDATE_FREQUENCY = 3  # Update progress bar every N files processed
 
 # Connection pool configuration
 CONNECTION_POOL_SIZE = 10  # Maximum number of connections in the pool
