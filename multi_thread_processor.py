@@ -270,6 +270,8 @@ class MultiThreadProcessor:
                         with self._progress_lock:
                             progress_counter += 1
                             if progress_counter % PROGRESS_BAR_UPDATE_FREQUENCY == 0:
+                                # Force a new line before updating progress bar
+                                print()
                                 progress_bar.update(PROGRESS_BAR_UPDATE_FREQUENCY)
                             
                 except Exception as e:
@@ -282,6 +284,8 @@ class MultiThreadProcessor:
                         with self._progress_lock:
                             progress_counter += 1
                             if progress_counter % PROGRESS_BAR_UPDATE_FREQUENCY == 0:
+                                # Force a new line before updating progress bar
+                                print()
                                 progress_bar.update(PROGRESS_BAR_UPDATE_FREQUENCY)
         
         # Close progress bar
@@ -484,6 +488,8 @@ class MultiThreadProcessor:
             if progress_bar:
                 progress_counter += 1
                 if progress_counter % PROGRESS_BAR_UPDATE_FREQUENCY == 0:
+                    # Force a new line before updating progress bar
+                    print()
                     progress_bar.update(PROGRESS_BAR_UPDATE_FREQUENCY)
         
         # Close progress bar
