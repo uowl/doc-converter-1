@@ -3,7 +3,7 @@ import logging
 import time
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from config import ENABLE_BATCH_PROCESSING, BATCH_SIZE, BATCH_DELAY_SECONDS, ENABLE_PROGRESS_BARS, PROGRESS_BAR_DESCRIPTION, MAX_WORKER_THREADS
+from config import ENABLE_BATCH_PROCESSING, BATCH_SIZE, BATCH_DELAY_SECONDS, ENABLE_PROGRESS_BARS, PROGRESS_BAR_DESCRIPTION, PROGRESS_BAR_UPDATE_FREQUENCY, MAX_WORKER_THREADS
 from multi_thread_processor import MultiThreadProcessor
 from blob_monitor import BlobMonitor
 from failed_conversions import FailedConversionsTracker
@@ -126,6 +126,8 @@ class BatchProcessor:
                     
                     # Log memory cleanup
                     self.logger.debug(f"[OK] Memory cleanup completed, ready for next batch")
+                
+
         
         except Exception as e:
             self.logger.error(f"Error during batch processing: {str(e)}")
@@ -239,5 +241,7 @@ class BatchProcessor:
         elif BATCH_DELAY_SECONDS > 30:
             validation['delay_ok'] = False
             validation['recommendations'].append("Consider decreasing BATCH_DELAY_SECONDS for faster processing")
+        
+
         
         return validation 

@@ -4,7 +4,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from config import ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, PROGRESS_BAR_DESCRIPTION
+from config import ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, PROGRESS_BAR_DESCRIPTION, PROGRESS_BAR_UPDATE_FREQUENCY
 from blob_monitor import BlobMonitor
 from document_converter import DocumentConverter
 from failed_conversions import FailedConversionsTracker
@@ -60,6 +60,7 @@ class MultiThreadProcessor:
         
         # Initialize progress bar if enabled
         progress_bar = None
+        progress_counter = 0  # Counter for progress bar updates
         if ENABLE_PROGRESS_BARS and TQDM_AVAILABLE:
             progress_bar = tqdm(
                 total=len(documents),
@@ -264,10 +265,12 @@ class MultiThreadProcessor:
                                 file_size_bytes=result['file_size']
                             )
                     
-                    # Update progress bar
+                    # Update progress bar every N files
                     if progress_bar:
                         with self._progress_lock:
-                            progress_bar.update(1)
+                            progress_counter += 1
+                            if progress_counter % PROGRESS_BAR_UPDATE_FREQUENCY == 0:
+                                progress_bar.update(PROGRESS_BAR_UPDATE_FREQUENCY)
                             
                 except Exception as e:
                     with self._lock:
@@ -277,7 +280,9 @@ class MultiThreadProcessor:
                     # Update progress bar even for exceptions
                     if progress_bar:
                         with self._progress_lock:
-                            progress_bar.update(1)
+                            progress_counter += 1
+                            if progress_counter % PROGRESS_BAR_UPDATE_FREQUENCY == 0:
+                                progress_bar.update(PROGRESS_BAR_UPDATE_FREQUENCY)
         
         # Close progress bar
         if progress_bar:
@@ -326,6 +331,7 @@ class MultiThreadProcessor:
         
         # Initialize progress bar for sequential processing
         progress_bar = None
+        progress_counter = 0  # Counter for progress bar updates
         if ENABLE_PROGRESS_BARS and TQDM_AVAILABLE:
             progress_bar = tqdm(
                 total=len(documents),
@@ -474,9 +480,11 @@ class MultiThreadProcessor:
                 )
                 results['failed_conversions'] += 1
             
-            # Update progress bar for each document processed
+            # Update progress bar every N files
             if progress_bar:
-                progress_bar.update(1)
+                progress_counter += 1
+                if progress_counter % PROGRESS_BAR_UPDATE_FREQUENCY == 0:
+                    progress_bar.update(PROGRESS_BAR_UPDATE_FREQUENCY)
         
         # Close progress bar
         if progress_bar:
