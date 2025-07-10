@@ -81,8 +81,8 @@ class BatchProcessor:
                 batch_end = min(batch_start + BATCH_SIZE, total_documents)
                 batch_documents = documents[batch_start:batch_end]
                 
-                self.logger.info(f"[OK] Processing batch {batch_num + 1}/{num_batches} ({len(batch_documents)} documents)")
-                self.logger.info(f"[OK] Documents {batch_start + 1}-{batch_end} of {total_documents}")
+                self.logger.debug(f"[OK] Processing batch {batch_num + 1}/{num_batches} ({len(batch_documents)} documents)")
+                self.logger.debug(f"[OK] Documents {batch_start + 1}-{batch_end} of {total_documents}")
                 
                 # Process current batch
                 batch_start_time = datetime.now()
@@ -112,12 +112,12 @@ class BatchProcessor:
                     overall_progress_bar.update(len(batch_documents))
                 
                 # Log batch completion
-                self.logger.info(f"[OK] Batch {batch_num + 1} completed:")
-                self.logger.info(f"  - Documents processed: {len(batch_documents)}")
-                self.logger.info(f"  - Successful conversions: {batch_results['successful_conversions']}")
-                self.logger.info(f"  - Failed conversions: {batch_results['failed_conversions']}")
-                self.logger.info(f"  - Processing time: {batch_processing_time:.2f} seconds")
-                self.logger.info(f"  - Threads used: {batch_results['thread_count']}")
+                self.logger.debug(f"[OK] Batch {batch_num + 1} completed:")
+                self.logger.debug(f"  - Documents processed: {len(batch_documents)}")
+                self.logger.debug(f"  - Successful conversions: {batch_results['successful_conversions']}")
+                self.logger.debug(f"  - Failed conversions: {batch_results['failed_conversions']}")
+                self.logger.debug(f"  - Processing time: {batch_processing_time:.2f} seconds")
+                self.logger.debug(f"  - Threads used: {batch_results['thread_count']}")
                 
                 # Add delay between batches (except for the last batch)
                 if batch_num < num_batches - 1:
@@ -125,7 +125,7 @@ class BatchProcessor:
                     time.sleep(BATCH_DELAY_SECONDS)
                     
                     # Log memory cleanup
-                    self.logger.info(f"[OK] Memory cleanup completed, ready for next batch")
+                    self.logger.debug(f"[OK] Memory cleanup completed, ready for next batch")
         
         except Exception as e:
             self.logger.error(f"Error during batch processing: {str(e)}")
@@ -149,9 +149,9 @@ class BatchProcessor:
         
         # Log batch summary
         if results['batch_results']:
-            self.logger.info(f"[OK] Batch processing summary:")
+            self.logger.debug(f"[OK] Batch processing summary:")
             for batch_info in results['batch_results']:
-                self.logger.info(f"  - Batch {batch_info['batch_num']}: {batch_info['documents_processed']} docs, "
+                self.logger.debug(f"  - Batch {batch_info['batch_num']}: {batch_info['documents_processed']} docs, "
                                f"{batch_info['successful_conversions']} success, {batch_info['failed_conversions']} failed, "
                                f"{batch_info['processing_time']:.2f}s")
         

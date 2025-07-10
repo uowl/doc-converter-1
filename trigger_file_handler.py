@@ -54,9 +54,9 @@ class TriggerFileHandler:
             self._validate_sas_url(config['source_sas_url'], "source")
             self._validate_sas_url(config['dest_sas_url'], "destination")
             
-            self.logger.info(f"Successfully parsed trigger file:")
-            self.logger.info(f"  Source SAS URL: {config['source_sas_url']}")
-            self.logger.info(f"  Destination SAS URL: {config['dest_sas_url']}")
+            self.logger.debug(f"Successfully parsed trigger file:")
+            self.logger.debug(f"  Source SAS URL: {config['source_sas_url']}")
+            self.logger.debug(f"  Destination SAS URL: {config['dest_sas_url']}")
             
             return config
             
@@ -73,10 +73,10 @@ class TriggerFileHandler:
                 raise ValueError(f"Invalid {url_type} SAS URL: {message}")
             
             account_info = handler.get_account_info()
-            self.logger.info(f"{url_type.capitalize()} SAS URL validation successful:")
-            self.logger.info(f"  Container: {account_info['container_name']}")
+            self.logger.debug(f"{url_type.capitalize()} SAS URL validation successful:")
+            self.logger.debug(f"  Container: {account_info['container_name']}")
             if account_info['additional_path']:
-                self.logger.info(f"  Additional path: {account_info['additional_path']}")
+                self.logger.debug(f"  Additional path: {account_info['additional_path']}")
                 
         except Exception as e:
             raise ValueError(f"Invalid {url_type} SAS URL: {str(e)}")

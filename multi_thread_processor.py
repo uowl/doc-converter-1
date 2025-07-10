@@ -110,7 +110,7 @@ class MultiThreadProcessor:
             try:
                 # Thread-safe logging
                 with self._lock:
-                    self.logger.info(f"[Thread-{thread_id}] Processing document: {filename}")
+                    self.logger.debug(f"[Thread-{thread_id}] Processing document: {filename}")
                 
                 # Create temporary file path with thread-specific naming to avoid conflicts
                 temp_file_path = os.path.join("temp", f"thread_{thread_id}_{filename}")
@@ -142,7 +142,7 @@ class MultiThreadProcessor:
                     if converted_file_path:
                         file_type = "PDF" if file_ext == '.pdf' else "TIF"
                         with self._lock:
-                            self.logger.info(f"[Thread-{thread_id}] [OK] Successfully copied {file_type} file: {filename}")
+                            self.logger.debug(f"[Thread-{thread_id}] [OK] Successfully copied {file_type} file: {filename}")
                     else:
                         file_type = "PDF" if file_ext == '.pdf' else "TIF"
                         error_msg = f"[FAILED] Failed to copy {file_type} file {filename}"
@@ -184,10 +184,10 @@ class MultiThreadProcessor:
                         if file_ext in ['.pdf', '.tif', '.tiff']:
                             file_type = "PDF" if file_ext == '.pdf' else "TIF"
                             with self._lock:
-                                self.logger.info(f"[Thread-{thread_id}] [OK] Successfully copied and uploaded {file_type}: {filename}")
+                                self.logger.debug(f"[Thread-{thread_id}] [OK] Successfully copied and uploaded {file_type}: {filename}")
                         else:
                             with self._lock:
-                                self.logger.info(f"[Thread-{thread_id}] [OK] Successfully converted and uploaded: {filename}")
+                                self.logger.debug(f"[Thread-{thread_id}] [OK] Successfully converted and uploaded: {filename}")
                         
                         # Mark as processed (thread-safe)
                         with self._lock:
@@ -209,21 +209,21 @@ class MultiThreadProcessor:
                     if file_ext in ['.pdf', '.tif', '.tiff']:
                         file_type = "PDF" if file_ext == '.pdf' else "TIF"
                         with self._lock:
-                            self.logger.info(f"[Thread-{thread_id}] Deleted downloaded {file_type} file to conserve space: {filename}")
+                            self.logger.debug(f"[Thread-{thread_id}] Deleted downloaded {file_type} file to conserve space: {filename}")
                     else:
                         with self._lock:
-                            self.logger.info(f"[Thread-{thread_id}] Deleted downloaded file to conserve space: {filename}")
+                            self.logger.debug(f"[Thread-{thread_id}] Deleted downloaded file to conserve space: {filename}")
                     
                     # Also clean up the processed file from local storage after upload
                     if os.path.exists(converted_file_path):
                         document_converter.cleanup_temp_files(converted_file_path)
                         with self._lock:
-                            self.logger.info(f"[Thread-{thread_id}] Cleaned up local processed file: {os.path.basename(converted_file_path)}")
+                            self.logger.debug(f"[Thread-{thread_id}] Cleaned up local processed file: {os.path.basename(converted_file_path)}")
                 else:
                     # If processing failed, still clean up the downloaded file
                     document_converter.cleanup_temp_files(temp_file_path)
                     with self._lock:
-                        self.logger.info(f"[Thread-{thread_id}] Cleaned up downloaded file after failed processing: {filename}")
+                        self.logger.debug(f"[Thread-{thread_id}] Cleaned up downloaded file after failed processing: {filename}")
                 
             except Exception as e:
                 error_msg = f"Error processing document {filename}: {str(e)}"
@@ -338,7 +338,7 @@ class MultiThreadProcessor:
         for document_name in documents:
             filename = os.path.basename(document_name)
             file_ext = os.path.splitext(filename)[1].lower()
-            self.logger.info(f"Processing document: {filename}")
+            self.logger.debug(f"Processing document: {filename}")
             
             # Update progress bar description
             if progress_bar:
@@ -376,7 +376,7 @@ class MultiThreadProcessor:
                     converted_file_path = document_converter.convert_to_pdf(temp_file_path)
                     if converted_file_path:
                         file_type = "PDF" if file_ext == '.pdf' else "TIF"
-                        self.logger.info(f"[OK] Successfully copied {file_type} file: {filename}")
+                        self.logger.debug(f"[OK] Successfully copied {file_type} file: {filename}")
                     else:
                         file_type = "PDF" if file_ext == '.pdf' else "TIF"
                         error_msg = f"[FAILED] Failed to copy {file_type} file {filename}"
@@ -425,9 +425,9 @@ class MultiThreadProcessor:
                     if dest_blob_monitor.upload_blob(converted_file_path, blob_name):
                         if file_ext in ['.pdf', '.tif', '.tiff']:
                             file_type = "PDF" if file_ext == '.pdf' else "TIF"
-                            self.logger.info(f"[OK] Successfully copied and uploaded {file_type}: {filename}")
+                            self.logger.debug(f"[OK] Successfully copied and uploaded {file_type}: {filename}")
                         else:
-                            self.logger.info(f"[OK] Successfully converted and uploaded: {filename}")
+                            self.logger.debug(f"[OK] Successfully converted and uploaded: {filename}")
                         # Mark as processed
                         source_blob_monitor.processed_files.add(document_name)
                         results['successful_conversions'] += 1
@@ -448,18 +448,18 @@ class MultiThreadProcessor:
                     document_converter.cleanup_temp_files(temp_file_path)
                     if file_ext in ['.pdf', '.tif', '.tiff']:
                         file_type = "PDF" if file_ext == '.pdf' else "TIF"
-                        self.logger.info(f"Deleted downloaded {file_type} file to conserve space: {filename}")
+                        self.logger.debug(f"Deleted downloaded {file_type} file to conserve space: {filename}")
                     else:
-                        self.logger.info(f"Deleted downloaded file to conserve space: {filename}")
+                        self.logger.debug(f"Deleted downloaded file to conserve space: {filename}")
                     
                     # Also clean up the processed file from local storage after upload
                     if os.path.exists(converted_file_path):
                         document_converter.cleanup_temp_files(converted_file_path)
-                        self.logger.info(f"Cleaned up local processed file: {os.path.basename(converted_file_path)}")
+                        self.logger.debug(f"Cleaned up local processed file: {os.path.basename(converted_file_path)}")
                 else:
                     # If processing failed, still clean up the downloaded file
                     document_converter.cleanup_temp_files(temp_file_path)
-                    self.logger.info(f"Cleaned up downloaded file after failed processing: {filename}")
+                    self.logger.debug(f"Cleaned up downloaded file after failed processing: {filename}")
                     
             except Exception as e:
                 error_msg = f"Error processing document {filename}: {str(e)}"

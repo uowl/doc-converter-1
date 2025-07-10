@@ -2,7 +2,7 @@ import logging
 import os
 from urllib.parse import urlparse, parse_qs
 from azure.storage.blob import BlobServiceClient
-from config import SAS_URL, TRIGGER_FILE_PATTERN, OUTPUT_DIR, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER, CONNECTION_POOL_SIZE, CONNECTION_POOL_MAX_RETRIES, CONNECTION_POOL_TIMEOUT
+from config import SAS_URL, TRIGGER_FILE_PATTERN, OUTPUT_DIR, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER, LOG_LEVEL, CONNECTION_POOL_SIZE, CONNECTION_POOL_MAX_RETRIES, CONNECTION_POOL_TIMEOUT
 from sas_url_handler import SASUrlHandler
 from trigger_file_handler import TriggerFileHandler
 
@@ -41,7 +41,7 @@ class BlobMonitor:
         
         # Setup logging with reduced Azure SDK verbosity
         logging.basicConfig(
-            level=logging.INFO,
+            level=getattr(logging, LOG_LEVEL),
             format='%(asctime)s - %(levelname)s - %(message)s',
             handlers=[
                 logging.FileHandler('doc_converter.log'),
@@ -58,13 +58,13 @@ class BlobMonitor:
             logging.getLogger('azure.core.pipeline.transport').setLevel(logging.WARNING)
         
         self.logger = logging.getLogger(__name__)
-        self.logger.info(f"BlobMonitor initialized")
-        self.logger.info(f"Container: {self.container_name}")
+        self.logger.debug(f"BlobMonitor initialized")
+        self.logger.debug(f"Container: {self.container_name}")
         if self.additional_path:
-            self.logger.info(f"Additional path: {self.additional_path}")
-        self.logger.info(f"Azure config folder: {self.azure_config_folder}")
-        self.logger.info(f"Azure files folder: {self.azure_files_folder}")
-        self.logger.info(f"Trigger file: {self.trigger_pattern}")
+            self.logger.debug(f"Additional path: {self.additional_path}")
+        self.logger.debug(f"Azure config folder: {self.azure_config_folder}")
+        self.logger.debug(f"Azure files folder: {self.azure_files_folder}")
+        self.logger.debug(f"Trigger file: {self.trigger_pattern}")
     
     def _get_full_path(self, folder_name):
         """Get the full path. If additional_path exists, it IS the base folder containing config/files/converted."""
@@ -77,7 +77,7 @@ class BlobMonitor:
         """Check if the trigger file exists in the Azure config folder."""
         try:
             config_path = self._get_full_path(self.azure_config_folder)
-            self.logger.info(f"Checking Azure config folder for trigger file: {config_path}/{self.trigger_pattern}")
+            self.logger.debug(f"Checking Azure config folder for trigger file: {config_path}/{self.trigger_pattern}")
             container_client = self.blob_service_client.get_container_client(self.container_name)
             
             # List blobs in the config folder
@@ -140,7 +140,7 @@ class BlobMonitor:
                 if file_ext in ['.doc', '.docx', '.txt', '.rtf', '.odt', '.html', '.htm', '.jpg', '.jpeg', '.png', '.tif', '.tiff', '.pdf']:
                     documents.append(blob.name)  # Use full blob path for download
             
-            self.logger.info(f"Found {len(documents)} documents to convert in Azure files folder")
+            # Removed redundant logging - this is now logged in main.py with better context
             return documents
             
         except Exception as e:
@@ -157,7 +157,7 @@ class BlobMonitor:
                 download_stream = blob_client.download_blob()
                 file.write(download_stream.readall())
             
-            self.logger.info(f"Downloaded {blob_name} to {local_path}")
+            self.logger.debug(f"Downloaded {blob_name} to {local_path}")
             return True
             
         except Exception as e:
@@ -173,7 +173,7 @@ class BlobMonitor:
             with open(local_path, "rb") as file:
                 blob_client.upload_blob(file, overwrite=True)
             
-            self.logger.info(f"Uploaded {local_path} as {blob_name}")
+            self.logger.debug(f"Uploaded {local_path} as {blob_name}")
             return True
             
         except Exception as e:
@@ -202,7 +202,7 @@ class BlobMonitor:
             blob_client = container_client.get_blob_client(dest_blob_path)
             with open(local_path, "rb") as file:
                 blob_client.upload_blob(file, overwrite=True)
-            self.logger.info(f"Uploaded local file {local_path} as {dest_blob_path}")
+            self.logger.debug(f"Uploaded local file {local_path} as {dest_blob_path}")
             return True
         except Exception as e:
             self.logger.error(f"Error uploading local file {local_path} as {dest_blob_path}: {str(e)}")

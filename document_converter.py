@@ -52,7 +52,7 @@ class DocumentConverter:
         try:
             shutil.copy2(input_path, output_path)
             file_type = "PDF" if file_ext == '.pdf' else "TIF"
-            self.logger.info(f"Copied {file_type} file as-is: {input_path} -> {output_path}")
+            self.logger.debug(f"Copied {file_type} file as-is: {input_path} -> {output_path}")
             return output_path
             
         except Exception as e:
@@ -74,7 +74,7 @@ class DocumentConverter:
             # Save as PDF
             doc.save(output_path, aw.SaveFormat.PDF)
             
-            self.logger.info(f"Converted image to PDF: {input_path} -> {output_path}")
+            self.logger.debug(f"Converted image to PDF: {input_path} -> {output_path}")
             return output_path
             
         except Exception as e:
@@ -92,7 +92,7 @@ class DocumentConverter:
             # Save as PDF
             doc.save(output_path, aw.SaveFormat.PDF)
             
-            self.logger.info(f"Converted Word document: {input_path} -> {output_path}")
+            self.logger.debug(f"Converted Word document: {input_path} -> {output_path}")
             return output_path
             
         except Exception as e:
@@ -110,7 +110,7 @@ class DocumentConverter:
             # Save as PDF
             doc.save(output_path, aw.SaveFormat.PDF)
             
-            self.logger.info(f"Converted HTML document: {input_path} -> {output_path}")
+            self.logger.debug(f"Converted HTML document: {input_path} -> {output_path}")
             return output_path
             
         except Exception as e:
@@ -136,7 +136,7 @@ class DocumentConverter:
             # Save as PDF
             doc.save(output_path, aw.SaveFormat.PDF)
             
-            self.logger.info(f"Converted text document: {input_path} -> {output_path}")
+            self.logger.debug(f"Converted text document: {input_path} -> {output_path}")
             return output_path
             
         except Exception as e:
@@ -148,6 +148,6 @@ class DocumentConverter:
         try:
             if os.path.exists(file_path):
                 os.remove(file_path)
-                self.logger.info(f"Cleaned up temporary file: {file_path}")
+                self.logger.debug(f"Cleaned up temporary file: {file_path}")
         except Exception as e:
             self.logger.error(f"Error cleaning up file {file_path}: {str(e)}") 

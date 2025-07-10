@@ -7,7 +7,7 @@ from document_converter import DocumentConverter
 from failed_conversions import FailedConversionsTracker
 from multi_thread_processor import MultiThreadProcessor
 from batch_processor import BatchProcessor
-from config import POLLING_INTERVAL, TRIGGER_FILE_PATTERN, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER, ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, ENABLE_BATCH_PROCESSING, BATCH_SIZE, BATCH_DELAY_SECONDS
+from config import POLLING_INTERVAL, TRIGGER_FILE_PATTERN, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER, ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, ENABLE_BATCH_PROCESSING, BATCH_SIZE, BATCH_DELAY_SECONDS, LOG_LEVEL
 
 class DocumentConverterApp:
     def __init__(self):
@@ -21,7 +21,7 @@ class DocumentConverterApp:
         
         # Setup logging with reduced Azure SDK verbosity
         logging.basicConfig(
-            level=logging.INFO,
+            level=getattr(logging, LOG_LEVEL),
             format='%(asctime)s - %(levelname)s - %(message)s',
             handlers=[
                 logging.FileHandler('doc_converter.log'),
@@ -54,7 +54,7 @@ class DocumentConverterApp:
             dest_blob_path = f"job_status/job_{timestamp}.log"
             success = self.main_blob_monitor.upload_local_file(log_file, dest_blob_path)
             if success:
-                self.logger.info(f"[OK] Uploaded job log to {dest_blob_path} in main SAS URL container.")
+                self.logger.debug(f"[OK] Uploaded job log to {dest_blob_path} in main SAS URL container.")
             else:
                 self.logger.error(f"[FAILED] Failed to upload job log to {dest_blob_path}.")
         except Exception as e:
@@ -70,8 +70,8 @@ class DocumentConverterApp:
             source_sas_url = trigger_config['source_sas_url']
             dest_sas_url = trigger_config['dest_sas_url']
             
-            self.logger.info(f"Using source SAS URL: {source_sas_url}")
-            self.logger.info(f"Using destination SAS URL: {dest_sas_url}")
+            self.logger.debug(f"Using source SAS URL: {source_sas_url}")
+            self.logger.debug(f"Using destination SAS URL: {dest_sas_url}")
             
             # Create source and destination blob monitors
             source_blob_monitor = BlobMonitor(source_sas_url)
@@ -89,16 +89,16 @@ class DocumentConverterApp:
             
             # Log multi-threading configuration
             if ENABLE_MULTI_THREADING:
-                self.logger.info(f"[OK] Multi-threading enabled with {MAX_WORKER_THREADS} max threads")
-                self.logger.info(f"[OK] Minimum files for multi-threading: {MIN_FILES_FOR_MULTI_THREADING}")
+                self.logger.debug(f"[OK] Multi-threading enabled with {MAX_WORKER_THREADS} max threads")
+                self.logger.debug(f"[OK] Minimum files for multi-threading: {MIN_FILES_FOR_MULTI_THREADING}")
             else:
                 self.logger.info("[OK] Multi-threading disabled - using sequential processing")
             
             # Log progress bar configuration
             if ENABLE_PROGRESS_BARS:
-                self.logger.info("[OK] Progress bars enabled - will show conversion progress")
+                self.logger.debug("[OK] Progress bars enabled - will show conversion progress")
             else:
-                self.logger.info("[OK] Progress bars disabled - using standard logging only")
+                self.logger.debug("[OK] Progress bars disabled - using standard logging only")
             
             # Log batch processing configuration
             if ENABLE_BATCH_PROCESSING:
