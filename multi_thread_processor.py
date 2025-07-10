@@ -4,7 +4,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from config import ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, PROGRESS_BAR_DESCRIPTION
+from config import ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, PROGRESS_BAR_DESCRIPTION, DISABLE_INDIVIDUAL_PROGRESS_BARS_IN_BATCH
 from blob_monitor import BlobMonitor
 from document_converter import DocumentConverter
 from failed_conversions import FailedConversionsTracker
@@ -60,13 +60,15 @@ class MultiThreadProcessor:
         
         # Initialize progress bar if enabled
         progress_bar = None
-        if ENABLE_PROGRESS_BARS and TQDM_AVAILABLE:
+        if ENABLE_PROGRESS_BARS and TQDM_AVAILABLE and not DISABLE_INDIVIDUAL_PROGRESS_BARS_IN_BATCH:
             progress_bar = tqdm(
                 total=len(documents),
                 desc=PROGRESS_BAR_DESCRIPTION,
                 unit="doc",
                 ncols=80,
-                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+                position=0,  # Fixed position to prevent overlap
+                leave=True,   # Keep the progress bar after completion
+                bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
             )
         
         # Create thread-local storage for document converters
@@ -324,13 +326,15 @@ class MultiThreadProcessor:
         
         # Initialize progress bar for sequential processing
         progress_bar = None
-        if ENABLE_PROGRESS_BARS and TQDM_AVAILABLE:
+        if ENABLE_PROGRESS_BARS and TQDM_AVAILABLE and not DISABLE_INDIVIDUAL_PROGRESS_BARS_IN_BATCH:
             progress_bar = tqdm(
                 total=len(documents),
                 desc=PROGRESS_BAR_DESCRIPTION,
                 unit="doc",
                 ncols=80,
-                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+                position=0,  # Fixed position to prevent overlap
+                leave=True,   # Keep the progress bar after completion
+                bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
             )
         
         document_converter = DocumentConverter()

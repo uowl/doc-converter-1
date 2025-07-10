@@ -58,7 +58,9 @@ class BatchProcessor:
                 desc="Overall Progress",
                 unit="doc",
                 ncols=80,
-                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+                position=1,  # Position below individual progress bars
+                leave=True,   # Keep the progress bar after completion
+                bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
             )
         
         # Calculate number of batches

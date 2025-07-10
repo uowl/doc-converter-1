@@ -7,7 +7,7 @@ from document_converter import DocumentConverter
 from failed_conversions import FailedConversionsTracker
 from multi_thread_processor import MultiThreadProcessor
 from batch_processor import BatchProcessor
-from config import POLLING_INTERVAL, TRIGGER_FILE_PATTERN, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER, ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, ENABLE_BATCH_PROCESSING, BATCH_SIZE, BATCH_DELAY_SECONDS, LOG_LEVEL
+from config import POLLING_INTERVAL, TRIGGER_FILE_PATTERN, AZURE_CONFIG_FOLDER, AZURE_FILES_FOLDER, ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, ENABLE_BATCH_PROCESSING, BATCH_SIZE, BATCH_DELAY_SECONDS, LOG_LEVEL, PROGRESS_BAR_LOG_DELAY
 
 class DocumentConverterApp:
     def __init__(self):
@@ -86,6 +86,10 @@ class DocumentConverterApp:
                 return
             
             self.logger.info(f"Found {len(documents)} documents to convert from source Azure files folder.")
+            
+            # Small delay to prevent progress bar interference
+            import time
+            time.sleep(PROGRESS_BAR_LOG_DELAY)
             
             # Log multi-threading configuration
             if ENABLE_MULTI_THREADING:

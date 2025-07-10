@@ -59,13 +59,15 @@ BATCH_SIZE = 1000  # Number of files to process in each batch
 BATCH_DELAY_SECONDS = 5  # Delay between batches to prevent resource exhaustion
 
 # Connection pool configuration
-CONNECTION_POOL_SIZE = 50  # Maximum number of connections in the pool
+CONNECTION_POOL_SIZE = 10  # Maximum number of connections in the pool
 CONNECTION_POOL_MAX_RETRIES = 3  # Maximum number of retries for failed connections
 CONNECTION_POOL_TIMEOUT = 30  # Connection timeout in seconds
 
 # Progress bar configuration
 ENABLE_PROGRESS_BARS = True  # Set to False to disable progress bars
 PROGRESS_BAR_DESCRIPTION = "Converting documents"  # Description for progress bars
+DISABLE_INDIVIDUAL_PROGRESS_BARS_IN_BATCH = True  # Disable individual progress bars during batch processing to prevent overlap
+PROGRESS_BAR_LOG_DELAY = 0.1  # Delay in seconds after logging to prevent progress bar interference
 
 # Logging configuration
 LOG_LEVEL = "INFO"
