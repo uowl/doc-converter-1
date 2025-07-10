@@ -3,7 +3,7 @@ import logging
 import time
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from config import ENABLE_BATCH_PROCESSING, BATCH_SIZE, BATCH_DELAY_SECONDS, ENABLE_PROGRESS_BARS, PROGRESS_BAR_DESCRIPTION, MAX_WORKER_THREADS
+from config import ENABLE_BATCH_PROCESSING, BATCH_SIZE, BATCH_DELAY_SECONDS, ENABLE_PROGRESS_BARS, PROGRESS_BAR_DESCRIPTION, MAX_WORKER_THREADS, DISABLE_LOGGING_DURING_PROGRESS
 from multi_thread_processor import MultiThreadProcessor
 from blob_monitor import BlobMonitor
 from failed_conversions import FailedConversionsTracker
@@ -53,6 +53,11 @@ class BatchProcessor:
         # Initialize overall progress bar
         overall_progress_bar = None
         if ENABLE_PROGRESS_BARS and TQDM_AVAILABLE:
+            # Disable logging during progress bar to prevent interference
+            import logging
+            original_handlers = logging.getLogger().handlers[:]
+            logging.getLogger().handlers.clear()
+            
             overall_progress_bar = tqdm(
                 total=total_documents,
                 desc="Overall Progress",
@@ -62,6 +67,10 @@ class BatchProcessor:
                 leave=True,   # Keep the progress bar after completion
                 bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
             )
+            
+            # Restore logging handlers after progress bar is created
+            for handler in original_handlers:
+                logging.getLogger().addHandler(handler)
         
         # Calculate number of batches
         num_batches = (total_documents + BATCH_SIZE - 1) // BATCH_SIZE  # Ceiling division
@@ -111,7 +120,20 @@ class BatchProcessor:
                 
                 # Update overall progress bar
                 if overall_progress_bar:
-                    overall_progress_bar.update(len(batch_documents))
+                    if DISABLE_LOGGING_DURING_PROGRESS:
+                        # Temporarily disable logging during progress bar update
+                        import logging
+                        original_level = logging.getLogger().level
+                        logging.getLogger().setLevel(logging.ERROR)  # Only show errors
+                        
+                        try:
+                            overall_progress_bar.update(len(batch_documents))
+                        finally:
+                            # Restore logging level
+                            logging.getLogger().setLevel(original_level)
+                    else:
+                        # Normal update without logging protection
+                        overall_progress_bar.update(len(batch_documents))
                 
                 # Log batch completion
                 self.logger.debug(f"[OK] Batch {batch_num + 1} completed:")

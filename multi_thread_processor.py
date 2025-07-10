@@ -4,7 +4,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from config import ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, PROGRESS_BAR_DESCRIPTION, DISABLE_INDIVIDUAL_PROGRESS_BARS_IN_BATCH
+from config import ENABLE_MULTI_THREADING, MAX_WORKER_THREADS, MIN_FILES_FOR_MULTI_THREADING, ENABLE_PROGRESS_BARS, PROGRESS_BAR_DESCRIPTION, DISABLE_INDIVIDUAL_PROGRESS_BARS_IN_BATCH, DISABLE_LOGGING_DURING_PROGRESS
 from blob_monitor import BlobMonitor
 from document_converter import DocumentConverter
 from failed_conversions import FailedConversionsTracker
@@ -61,6 +61,11 @@ class MultiThreadProcessor:
         # Initialize progress bar if enabled
         progress_bar = None
         if ENABLE_PROGRESS_BARS and TQDM_AVAILABLE and not DISABLE_INDIVIDUAL_PROGRESS_BARS_IN_BATCH:
+            # Disable logging during progress bar to prevent interference
+            import logging
+            original_handlers = logging.getLogger().handlers[:]
+            logging.getLogger().handlers.clear()
+            
             progress_bar = tqdm(
                 total=len(documents),
                 desc=PROGRESS_BAR_DESCRIPTION,
@@ -70,9 +75,35 @@ class MultiThreadProcessor:
                 leave=True,   # Keep the progress bar after completion
                 bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
             )
+            
+            # Restore logging handlers after progress bar is created
+            for handler in original_handlers:
+                logging.getLogger().addHandler(handler)
         
         # Create thread-local storage for document converters
         thread_local = threading.local()
+        
+        def update_progress_bar_safely(progress_bar, value=1, description=None):
+            """Update progress bar safely without logging interference."""
+            if progress_bar:
+                if DISABLE_LOGGING_DURING_PROGRESS:
+                    # Temporarily disable logging during progress bar update
+                    import logging
+                    original_level = logging.getLogger().level
+                    logging.getLogger().setLevel(logging.ERROR)  # Only show errors
+                    
+                    try:
+                        progress_bar.update(value)
+                        if description:
+                            progress_bar.set_description(description)
+                    finally:
+                        # Restore logging level
+                        logging.getLogger().setLevel(original_level)
+                else:
+                    # Normal update without logging protection
+                    progress_bar.update(value)
+                    if description:
+                        progress_bar.set_description(description)
         
         def get_thread_converter():
             """Get or create a document converter for the current thread."""
@@ -97,7 +128,7 @@ class MultiThreadProcessor:
             # Update progress bar description with current file
             if progress_bar:
                 with self._progress_lock:
-                    progress_bar.set_description(f"Converting {filename}")
+                    update_progress_bar_safely(progress_bar, 0, f"Converting {filename}")
             
             result = {
                 'document_name': document_name,
@@ -267,7 +298,7 @@ class MultiThreadProcessor:
                     # Update progress bar
                     if progress_bar:
                         with self._progress_lock:
-                            progress_bar.update(1)
+                            update_progress_bar_safely(progress_bar, 1)
                             
                 except Exception as e:
                     with self._lock:
@@ -277,7 +308,7 @@ class MultiThreadProcessor:
                     # Update progress bar even for exceptions
                     if progress_bar:
                         with self._progress_lock:
-                            progress_bar.update(1)
+                            update_progress_bar_safely(progress_bar, 1)
         
         # Close progress bar
         if progress_bar:
@@ -327,6 +358,11 @@ class MultiThreadProcessor:
         # Initialize progress bar for sequential processing
         progress_bar = None
         if ENABLE_PROGRESS_BARS and TQDM_AVAILABLE and not DISABLE_INDIVIDUAL_PROGRESS_BARS_IN_BATCH:
+            # Disable logging during progress bar to prevent interference
+            import logging
+            original_handlers = logging.getLogger().handlers[:]
+            logging.getLogger().handlers.clear()
+            
             progress_bar = tqdm(
                 total=len(documents),
                 desc=PROGRESS_BAR_DESCRIPTION,
@@ -336,6 +372,10 @@ class MultiThreadProcessor:
                 leave=True,   # Keep the progress bar after completion
                 bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
             )
+            
+            # Restore logging handlers after progress bar is created
+            for handler in original_handlers:
+                logging.getLogger().addHandler(handler)
         
         document_converter = DocumentConverter()
         
@@ -346,7 +386,7 @@ class MultiThreadProcessor:
             
             # Update progress bar description
             if progress_bar:
-                progress_bar.set_description(f"Converting {filename}")
+                update_progress_bar_safely(progress_bar, 0, f"Converting {filename}")
             
             # Create temporary file path
             temp_file_path = os.path.join("temp", filename)
@@ -478,7 +518,7 @@ class MultiThreadProcessor:
             
             # Update progress bar for each document processed
             if progress_bar:
-                progress_bar.update(1)
+                update_progress_bar_safely(progress_bar, 1)
         
         # Close progress bar
         if progress_bar:
