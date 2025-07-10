@@ -50,7 +50,7 @@ OUTPUT_DIR = "converted_documents"
 
 # Multi-threading configuration
 ENABLE_MULTI_THREADING = True  # Set to False to disable multi-threading
-MAX_WORKER_THREADS = 16  # Maximum number of concurrent conversion threads
+MAX_WORKER_THREADS = 10  # Maximum number of concurrent conversion threads
 MIN_FILES_FOR_MULTI_THREADING = 4  # Minimum files required to enable multi-threading
 
 # Batch processing configuration
